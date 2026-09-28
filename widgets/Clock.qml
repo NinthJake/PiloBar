@@ -38,6 +38,6 @@ Item {
         id: mouse
         anchors.fill: parent
         hoverEnabled: true
-        onClicked: Panels.toggle("calendar", root.screen)
+        onClicked: Panels.toggle("calendar", root.screen, root)
     }
 }

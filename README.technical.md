@@ -15,7 +15,9 @@ technical map and the place to record implementation gotchas.
 - Logs: each run prints a path under `/run/user/$(id -u)/quickshell/by-id/<id>/log.qslog`.
   It is a binary-ish log; `strings <file> | rg -i "error|warn"` works.
 - IPC: `qs -c pilo ipc call pilo toggle <launcher|calendar|network|sound|settings|monitors>`,
-  `qs -c pilo ipc call pilo close`.
+  `qs -c pilo ipc call pilo close`. `toggle settings` opens the standalone
+  settings window (not a bar panel); `monitors` (or `displays`) opens it on the
+  Displays page; `close` closes both the panels and the settings window.
 
 ## Requirements
 
@@ -38,17 +40,26 @@ pilo/
   Power.qml            power profile via powerprofilesctl          (singleton)
   Holidays.qml         holiday dates per region                   (singleton)
   RunningApps.qml      running-window model + focus/close/kill     (singleton)
+  BarWidgets.qml       available bar widget registry + default layout (singleton)
+  SettingsApp.qml      settings window open/category/search state  (singleton)
+  Displays.qml         monitor model + arrange/refresh/scale/identify (singleton)
+  SettingsWindow.qml   standalone settings window (FloatingWindow)
   widgets/             bar buttons and small controls
-    BarButton, LauncherButton, MonitorsButton, NetworkButton,
-    SoundButton, SettingsButton, Taskbar, Workspaces, Clock,
-    PanelCard, Segmented, Slider, Toggle, ActionButton
+    BarButton, LauncherButton, NetworkButton,
+    SoundButton, SettingsButton, Taskbar, Workspaces, Clock, BarSpacer,
+    PanelCard, Segmented, Slider, Toggle, ActionButton,
+    SettingRow, IconButton, TextField
   panels/              panel contents (no windows of their own)
-    AppLauncher, CalendarPanel, NetworkPanel, SoundPanel,
-    SettingsPanel, MonitorsPanel, WindowsMenu
+    AppLauncher, CalendarPanel, NetworkPanel, SoundPanel, WindowsMenu
+  settings/            settings window categories
+    BarCategory, DisplaysCategory, WidgetsCategory, LauncherCategory,
+    CalendarCategory, SystemCategory, AdvancedCategory, SettingsSearch,
+    CategoryHeading
   DESIGN.md            original design document
   README.md            user-facing overview
-  REMINDERS.md         backlog / done list
-  FEATURE_REQUESTS.md  longer feature ideas
+  CHANGELOG.md         implemented changes and added features
+  REMINDERS.md         review fixes
+  FEATURE_REQUESTS.md  active (not-yet-implemented) feature ideas
 ```
 
 Singletons use `pragma Singleton` and are imported with `qs`. Cross-directory
@@ -75,6 +86,24 @@ The anchored launcher is a child of the panel overlay; the centered launcher is
 a child of the launcher overlay. `Panels.launcherAnchored` selects which one is
 shown and which window is visible.
 
+Panel placement no longer binds to specific widget ids. A widget that opens a
+panel calls `Panels.toggle(name, screen, this)`; `Panels` stores the widget's
+anchor (`anchorX`/`anchorW`, bar-local) and `Bar.qml` positions whichever panel
+is open with `panelX(width)`/`panelY(height)`. Panels opened via IPC pass no
+widget, so `anchorValid` is false and the panel centers on the screen.
+
+The **settings window** (`SettingsWindow.qml`) is the one exception: a single
+`FloatingWindow` created in `shell.qml`, not a layer surface, so the compositor
+tiles/floats it like a normal window. `SettingsApp` holds its transient state
+(open, target screen, category, search).
+
+Each `Bar.qml` also creates an **identify overlay** — namespace
+`pilo-identify`, layer Overlay, `exclusiveZone: -1`. It is visible while
+`Displays.identifyActive` is true and shows the display's number, name, and
+resolution centered on that screen. It auto-hides after 5s (`Displays`' timer) or
+on click. Which number a screen gets comes from `Displays.idFor()`, the same
+left-to-right order shown in the settings list.
+
 Panels size their height to their content (`implicitHeight`), with caps on long
 lists so they scroll instead of growing forever. The bar sets each panel's
 height from that. Widths are fixed. The centered launcher is deliberately fixed
@@ -86,10 +115,34 @@ size.
 `$XDG_STATE_HOME/quickshell/by-shell/<id>/settings.json`. The adapter's
 properties are the settings; `onAdapterUpdated: writeAdapter()` persists them.
 Keys: `chrome`, `edge`, `opacity`, `gap`, `workspaceMode`, `launcherSort`,
-`fileSearch`, `holidays`, `usage` (per-app launch counts/timestamps).
+`fileSearch`, `holidays`, `layout` (bar widget arrangement), and `usage`
+(per-app launch counts/timestamps). `resetAll()` restores the defaults;
+`exportTo(path)`/`importFrom(path)` copy the file (import reloads the adapter).
 
-`Panels.qml` holds all transient UI state: which panel is open, on which
-screen, the launcher presentation, and the window menu's app list and anchor x.
+`Panels.qml` holds all transient bar-panel UI state: which panel is open, on
+which screen, the anchor of the widget that opened it, the launcher
+presentation, and the window menu's app list. `SettingsApp.qml` holds the
+settings window's transient state.
+
+## Bar layout
+
+`BarWidgets.qml` lists the available widgets (launcher, taskbar, workspaces,
+clock, network, sound, settings, spacer) and produces the default
+`{ left, center, right }` layout. `Bar.qml` renders each section by repeating
+over `Settings.sectionList(section)` and mapping each key to a `Component` via
+`componentFor()`; a `Loader` instantiates it (unknown keys render nothing).
+The components are declared in
+`Bar.qml` so they can bind `screen: bar.screen`. The settings app's Widgets
+category edits the stored lists (add, move, remove, reset): a palette of widgets
+sits at the bottom, each column has a `+` menu, and drag-and-drop moves rows
+between columns or back to the palette to remove. Drag state lives in flat
+properties on the category item (in-place mutation of a JS object would not
+notify bindings); drops hit-test the column list rectangles and compute an
+insertion index from the y position.
+
+`Settings.migrateLayout()` drops stored keys that are no longer in the registry
+(e.g. the removed `monitors` widget) on load; it is guarded on `FileView.loaded`
+so a hot reload cannot rewrite the file from the adapter's defaults.
 
 ## Hyprland integration (and its gotchas)
 
@@ -110,15 +163,16 @@ dispatchers:
 - **Monitors are configured in a separate file.** `hyprland.lua` no longer
   lists monitors; it does
   `for _, m in ipairs(require("monitors")) do hl.monitor(m) end`, reading
-  `~/.config/hypr/monitors.lua`. `MonitorsPanel` rewrites that file and applies
-  changes live with `hyprctl keyword monitor`. The written file is treated as
-  generated (see `.gitignore` in the dotfiles repo).
+  `~/.config/hypr/monitors.lua`. `Displays.qml` (used by the settings app's
+  Displays page) rewrites that file and applies changes live with
+  `hyprctl keyword monitor`. The written file is treated as generated (see
+  `.gitignore` in the dotfiles repo).
 - **Super opens this launcher.** `hyprland.lua`'s `menu` variable is
   `qs -c pilo ipc call pilo toggle launcher`.
 - **Layer rules.** `hyprland.lua` blurs `pilo-bar` and sets `no_anim` on
-  `pilo-launcher` and `pilo-popup`. The `no_anim` is required: the config's
-  `fadeLayers` animation runs at speed 60, which otherwise makes the overlays
-  take ~4 seconds to fade in.
+  `pilo-launcher`, `pilo-popup`, and `pilo-identify`. The `no_anim` is required:
+  the config's `fadeLayers` animation runs at speed 60, which otherwise makes
+  the overlays take ~4 seconds to fade in.
 
 ## Process model
 
@@ -137,7 +191,7 @@ Prefer native Quickshell services; shell out only where needed.
 | Power profile | `powerprofilesctl` via `Power.qml` |
 | Holidays | `Holidays.qml` |
 | Running apps | `hyprctl clients -j`; actions via `hyprctl dispatch 'hl.dsp…'` |
-| Monitors | `hyprctl monitors -j` / `hyprctl keyword monitor` |
+| Monitors | `Displays.qml`: `hyprctl monitors -j` / `hyprctl keyword monitor` |
 | Session | `systemctl` / `hyprctl`, as in the old power menu |
 
 ## Known issues / decisions
@@ -154,22 +208,37 @@ Prefer native Quickshell services; shell out only where needed.
   anchored panels.
 - **Panel heights follow content.** Long lists are capped (Wi-Fi 220, Bluetooth
   180, outputs 180, monitors 460, window menu 400) and scroll.
+- **Bar sections cannot overlap.** The left and right groups are capped at
+  `(barWidth - centerGroup.width) / 2 - 6` and `clip: true`, so a long section
+  (e.g. many taskbar widgets) is clipped at the inner edge rather than running
+  under the centered group.
 - **`quickshell` state dir.** `Settings.qml` runs `mkdir -p` for the state dir
   at startup; the first launch logs a harmless "File does not exist" read
   warning until a setting is changed.
 - **Do not start a notification server.** Something else owns
   `org.freedesktop.Notifications`.
+- **The settings window is a normal toplevel.** `SettingsWindow.qml` is a
+  `FloatingWindow`, so the compositor decides whether to tile or float it; add a
+  Hyprland `float` window rule if it should always float. It is deliberately not
+  a layer surface and does not join the panel overlay.
 
 ## Working on it
 
 - Hot reload: edit and save; the bar reloads. Structural changes (new files,
   imports, a changed singleton) are safer with a restart.
-- Add a bar button: a thin `BarButton` subclass in `widgets/`, then place it in
-  a section in `Bar.qml`.
+- Add a bar widget: a `BarButton` subclass (or item) in `widgets/`, add a
+  `Component { id: comp…; … { screen: bar.screen } }` and a `componentFor()`
+  branch in `Bar.qml`, then add it to `BarWidgets.available` and the default
+  layout.
 - Add a panel: a `PanelCard` root in `panels/` whose content sets
-  `implicitHeight`, add it to the panel overlay in `Bar.qml` with an x/y
-  binding, and add the panel name to `Panels.qml`. Panels are keyed by
-  `Panels.active`.
+  `implicitHeight`, add it to the panel overlay in `Bar.qml` with
+  `x: bar.panelX(width)` / `y: bar.panelY(height)`, and add the panel name to
+  `Panels.qml`. Panels are keyed by `Panels.active`; the opening widget passes
+  itself to `Panels.toggle()` for anchoring.
+- Add a settings category: a `ColumnLayout` in `settings/` built from
+  `CategoryHeading` and `SettingRow`, wire it into `SettingsWindow.qml`
+  (`categories`, `categoryComponent`, a `Component`), and add its settings to
+  the `SettingsSearch` index.
 - Validate the Lua config after editing it:
   `luajit -bl ~/.config/hypr/hyprland.lua >/dev/null`, then
   `hyprctl reload` and `hyprctl configerrors`.

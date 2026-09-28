@@ -41,5 +41,5 @@ BarButton {
     glyph: root.wired ? Theme.glyphEthernet : Theme.glyphWifi
     active: Panels.isOpen("network", root.screen)
     showPip: root.bluetoothConnected
-    onClicked: Panels.toggle("network", root.screen)
+    onClicked: Panels.toggle("network", root.screen, root)
 }

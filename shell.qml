@@ -11,6 +11,8 @@ ShellRoot {
         Bar {}
     }
 
+    SettingsWindow {}
+
     // Bind the audio nodes we display so their volume/mute properties stay live.
     PwObjectTracker {
         objects: {
@@ -37,12 +39,17 @@ ShellRoot {
                 return
             if (panel === "launcher")
                 Panels.toggleLauncher(screen, false)
+            else if (panel === "settings")
+                SettingsApp.toggle(screen)
+            else if (panel === "monitors" || panel === "displays")
+                SettingsApp.openAt(screen, "displays")
             else
                 Panels.toggle(panel, screen)
         }
 
         function close() {
             Panels.close()
+            SettingsApp.close()
         }
     }
 }

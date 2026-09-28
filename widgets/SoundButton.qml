@@ -12,7 +12,7 @@ BarButton {
 
     glyph: (muted || volume <= 0.001) ? Theme.glyphVolumeMute : Theme.glyphVolume
     active: Panels.isOpen("sound", root.screen)
-    onClicked: Panels.toggle("sound", root.screen)
+    onClicked: Panels.toggle("sound", root.screen, root)
 
     onScrolled: (delta) => {
         const s = Pipewire.defaultAudioSink

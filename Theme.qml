@@ -54,6 +54,13 @@ Singleton {
     readonly property string glyphArrowLeft: "\uf060"
     readonly property string glyphArrowRight: "\uf061"
     readonly property string glyphRefresh: "\uf021"
+    readonly property string glyphChevronUp: "\uf077"
+    readonly property string glyphChevronDown: "\uf078"
+    readonly property string glyphPlus: "\uf067"
+    readonly property string glyphMinus: "\uf068"
+    readonly property string glyphTrash: "\uf1f8"
+    readonly property string glyphLayout: "\uf00a"
+    readonly property string glyphCalendar: "\uf073"
 
     function withAlpha(c, a) {
         return Qt.rgba(c.r, c.g, c.b, a)

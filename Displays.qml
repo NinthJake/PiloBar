@@ -1,23 +1,22 @@
-import QtQuick
-import QtQuick.Layouts
+pragma Singleton
+
 import Quickshell
 import Quickshell.Io
-import qs
-import qs.widgets
+import QtQuick
 
-// Arrange monitors left/right, change refresh rate and scale. Live-applies via
-// `hyprctl keyword monitor` and persists by rewriting monitors.lua, which
-// hyprland.lua loads with require().
-PanelCard {
+// Monitor model + actions. Arrange monitors horizontally, change refresh rate
+// and scale. Live-applies via `hyprctl keyword monitor` and persists by
+// rewriting monitors.lua, which hyprland.lua loads with require(). Shared by
+// the settings app's Displays category and the identify overlay.
+Singleton {
     id: root
-
-    implicitHeight: content.implicitHeight + 28
 
     property var monitors: []
     property var order: []
     property var refreshPick: ({})
     property var scalePick: ({})
     property var fileScales: ({})
+    property bool identifyActive: false
 
     readonly property string monitorsPath: String(Quickshell.env("HOME")) + "/.config/hypr/monitors.lua"
 
@@ -91,6 +90,12 @@ PanelCard {
         return m ? m.scale : 1
     }
 
+    // 1-based id shown in the settings list and the identify overlay. 0 when
+    // the monitor is not in the current order yet.
+    function idFor(name) {
+        return order.indexOf(name) + 1
+    }
+
     function layoutPositions() {
         // Keep the existing origin so a refresh-only change does not move the
         // desktop; re-anchor to the leftmost monitor when arranging.
@@ -120,9 +125,9 @@ PanelCard {
         let lines = [
             "-- Monitor configuration.",
             "--",
-            "-- Managed by the pilo bar's Monitors widget. It can be edited by hand;",
-            "-- the widget rewrites it when monitors are arranged, or their scale or",
-            "-- refresh rate is changed. hyprland.lua loads it with require().",
+            "-- Managed by the pilo settings app (Displays). It can be edited by hand;",
+            "-- it is rewritten when monitors are arranged, or their scale or refresh",
+            "-- rate is changed. hyprland.lua loads it with require().",
             "--",
             "-- Fields match hl.monitor(): output, mode (\"WxH@Hz\"), position (\"XxY\"),",
             "-- scale (\"auto\" or a number).",
@@ -160,25 +165,11 @@ PanelCard {
         Quickshell.execDetached(["sh", "-c", "cat > '" + monitorsPath + "' <<'PILO_EOF'\n" + buildLua(pos) + "PILO_EOF"])
     }
 
-    function resetAll() {
-        refreshPick = ({})
-        scalePick = ({})
-        for (let i = 0; i < order.length; i++) {
-            const name = order[i]
-            const m = monitorByName(name)
-            if (!m)
-                continue
-            // preferred mode, auto position, automatic scale
-            Quickshell.execDetached(["hyprctl", "keyword", "monitor", name + ",preferred,auto,auto"])
-        }
-        Quickshell.execDetached(["sh", "-c", "cat > '" + monitorsPath + "' <<'PILO_EOF'\n" + buildLuaFromPreferred() + "PILO_EOF"])
-    }
-
     function buildLuaFromPreferred() {
         let lines = [
             "-- Monitor configuration.",
             "--",
-            "-- Managed by the pilo bar's Monitors widget.",
+            "-- Managed by the pilo settings app (Displays).",
             "return {"
         ]
         for (let i = 0; i < order.length; i++) {
@@ -188,15 +179,29 @@ PanelCard {
         return lines.join("\n") + "\n"
     }
 
-    function move(name, dir) {
-        const i = order.indexOf(name)
-        const j = i + dir
-        if (i < 0 || j < 0 || j >= order.length)
+    function resetAll() {
+        refreshPick = ({})
+        scalePick = ({})
+        for (let i = 0; i < order.length; i++) {
+            const name = order[i]
+            if (!monitorByName(name))
+                continue
+            Quickshell.execDetached(["hyprctl", "keyword", "monitor", name + ",preferred,auto,auto"])
+        }
+        Quickshell.execDetached(["sh", "-c", "cat > '" + monitorsPath + "' <<'PILO_EOF'\n" + buildLuaFromPreferred() + "PILO_EOF"])
+    }
+
+    // Move the monitor at `from` to insertion point `to` (0..order.length).
+    function reorder(from, to) {
+        if (from < 0 || from >= order.length)
             return
         let next = order.slice()
-        const tmp = next[i]
-        next[i] = next[j]
-        next[j] = tmp
+        const name = next.splice(from, 1)[0]
+        let t = to
+        if (to > from)
+            t -= 1
+        t = Math.max(0, Math.min(next.length, t))
+        next.splice(t, 0, name)
         order = next
         applyAll()
     }
@@ -217,6 +222,22 @@ PanelCard {
         pick[name] = key
         scalePick = pick
         applyAll()
+    }
+
+    function identify() {
+        identifyActive = true
+        identifyTimer.restart()
+    }
+
+    function stopIdentify() {
+        identifyActive = false
+    }
+
+    function refresh() {
+        if (!monitorsProc.running)
+            monitorsProc.running = true
+        if (!fileProc.running)
+            fileProc.running = true
     }
 
     function parseMonitors(text) {
@@ -264,13 +285,6 @@ PanelCard {
         fileScales = map
     }
 
-    onVisibleChanged: {
-        if (visible) {
-            monitorsProc.running = true
-            fileProc.running = true
-        }
-    }
-
     Process {
         id: monitorsProc
         command: ["hyprctl", "monitors", "-j"]
@@ -295,150 +309,9 @@ PanelCard {
     }
 
     Timer {
-        id: refreshTimer
-        interval: 400
+        id: identifyTimer
+        interval: 5000
         repeat: false
-        onTriggered: monitorsProc.running = true
-    }
-
-    ColumnLayout {
-        id: content
-        anchors.fill: parent
-        anchors.margins: 14
-        spacing: 10
-
-        RowLayout {
-            Layout.fillWidth: true
-
-            Text {
-                text: "Monitors"
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize
-                font.bold: true
-                color: Theme.fg
-            }
-
-            Item { Layout.fillWidth: true }
-
-            ActionButton {
-                glyph: Theme.glyphRefresh
-                label: "Reset"
-                onTriggered: root.resetAll()
-            }
-        }
-
-       Text {
-            Layout.fillWidth: true
-            text: "Drag-free arrangement: move a monitor left or right. Changes apply immediately and are saved to monitors.lua."
-            wrapMode: Text.WordWrap
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSize - 2
-            color: Theme.muted
-        }
-
-        ListView {
-            id: list
-            Layout.fillWidth: true
-            Layout.preferredHeight: Math.min(list.contentHeight, 460)
-            clip: true
-            spacing: 8
-            model: root.order
-
-            delegate: Rectangle {
-                id: card
-                required property var modelData
-                readonly property var mon: root.monitorByName(modelData)
-
-                width: ListView.view.width
-                height: mon ? 108 : 0
-                visible: mon !== null
-                radius: 6
-                color: Theme.withAlpha(Theme.line, 0.35)
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 6
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-
-                        BarButton {
-                            glyph: Theme.glyphArrowLeft
-                            implicitHeight: 24
-                            implicitWidth: 26
-                            onClicked: root.move(card.modelData, -1)
-                        }
-
-                        Text {
-                            Layout.fillWidth: true
-                            text: card.mon ? card.modelData + "   " + card.mon.width + "x" + card.mon.height : card.modelData
-                            elide: Text.ElideRight
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize
-                            font.bold: true
-                            color: Theme.fg
-                        }
-
-                        Text {
-                            text: card.mon ? root.roundRefresh(card.mon.refreshRate) + " Hz" : ""
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 1
-                            color: Theme.muted
-                        }
-
-                        BarButton {
-                            glyph: Theme.glyphArrowRight
-                            implicitHeight: 24
-                            implicitWidth: 26
-                            onClicked: root.move(card.modelData, 1)
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-
-                        Text {
-                            Layout.preferredWidth: 56
-                            text: "Refresh"
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 1
-                            color: Theme.muted
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        Segmented {
-                            options: card.mon ? root.refreshOptions(card.modelData) : []
-                            value: root.refreshKey(card.modelData)
-                            onSelected: (key) => root.setRefresh(card.modelData, key)
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-
-                        Text {
-                            Layout.preferredWidth: 56
-                            text: "Scale"
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 1
-                            color: Theme.muted
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        Segmented {
-                            options: root.scaleOptions
-                            value: root.scaleKey(card.modelData)
-                            onSelected: (key) => root.setScale(card.modelData, key)
-                        }
-                    }
-                }
-            }
-        }
+        onTriggered: root.identifyActive = false
     }
 }

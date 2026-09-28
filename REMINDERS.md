@@ -1,6 +1,7 @@
 # Pilo bar — reminders / backlog
 
-All review items are done. Feature ideas live in `FEATURE_REQUESTS.md`.
+All review items below are done. Implemented features are recorded in
+`CHANGELOG.md`; active ideas live in `FEATURE_REQUESTS.md`.
 
 ## Done
 
@@ -34,6 +35,12 @@ All review items are done. Feature ideas live in `FEATURE_REQUESTS.md`.
 
 ## Feature requests
 
-Kept in `FEATURE_REQUESTS.md`. First entry: **Hyprland monitors widget**
-(horizontal arrangement, refresh rate, scale; splits the monitor config out of
-`hyprland.lua`).
+Implemented ones are recorded in `CHANGELOG.md`; the active list is
+`FEATURE_REQUESTS.md`. Nothing is pending from here.
+
+- **Monitors** — moved to the settings app's **Displays** page (drag to
+  arrange, refresh/scale, Identify).
+- **Settings app** — standalone `FloatingWindow` with a searchable category
+  sidebar (`SettingsWindow.qml`).
+- **Movable bar widgets** — layout editor backed by `BarWidgets.qml` and
+  `Settings.layout`.

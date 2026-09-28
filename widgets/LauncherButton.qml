@@ -7,5 +7,5 @@ BarButton {
 
     glyph: Theme.glyphLauncher
     active: Panels.isOpen("launcher", root.screen)
-    onClicked: Panels.toggleLauncher(root.screen, true)
+    onClicked: Panels.toggleLauncher(root.screen, true, root)
 }

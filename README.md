@@ -21,10 +21,9 @@ Three sections, left to right:
 
 **Right**
 - **Clock** — 24-hour time. Click it to open the calendar.
-- **Monitors** — arrange your screens and change their refresh rate and scale.
 - **Network & Bluetooth** — connection status and controls.
 - **Sound** — volume and output device.
-- **Settings** — customize the bar.
+- **Settings** — customize the bar and arrange your screens.
 
 Only one panel is open at a time. Click anywhere else to close it.
 
@@ -52,10 +51,8 @@ shows its name at the bottom.
 - **Network & Bluetooth** — toggle Wi-Fi, pick a network, connect to a new one,
   and connect or disconnect paired Bluetooth devices.
 - **Sound** — adjust volume, mute, and choose the output device.
-- **Monitors** — reorder your screens left and right, and set each screen's
-  refresh rate and scale. A Reset button restores the recommended settings.
-  Changes apply immediately and are remembered.
-- **Bar settings** — see below.
+- **Settings** — opens the separate Pilo Settings window (see below), including
+  the **Displays** page for arranging and identifying screens.
 
 ## Running apps
 
@@ -72,22 +69,36 @@ collapse into a `+N` button.
 
 ## Customizing the bar
 
-Open the gear icon and everything applies instantly and is saved:
+Open the gear icon for **Pilo Settings** — a regular desktop window with a
+category sidebar and search. Everything applies instantly and is saved.
 
-- **Chrome** — *Flush* (edge to edge), *Pill* (a floating bar), or *Islands*
-  (separate capsules).
-- **Edge** — top or bottom of the screen.
-- **Opacity** and **Gap** (the spacing from the screen edge in Pill and Islands
-  modes).
-- **Workspaces** — show all, or only occupied ones.
-- **Holidays** — none or Sweden.
-- **Launcher sort** — the default ordering for search results.
-- **File search** — turn searching files on or off.
-- **Power profile** — Battery, Balanced, or Performance.
+- **Bar** — *Chrome* (Flush, Pill, Islands), *Edge* (top or bottom), *Opacity*,
+  *Gap*, and *Workspaces* (all ten, or only occupied).
+- **Displays** — drag the screen cards left or right to set how your monitors
+  are arranged, and set each screen's *refresh rate* and *scale*. **Identify**
+  flashes a big number on each screen so you can tell which one is which;
+  *Reset* restores the recommended settings. Changes apply immediately and are
+  saved to `monitors.lua`.
+- **Widgets** — choose what sits in the **Left**, **Center**, and **Right**
+  sections and in what order. Drag a widget from the **Available widgets**
+  palette at the bottom into a column to add it, drag rows to reorder or move
+  them between columns, or drop a row back on the palette to remove it. Each
+  column's **+** opens a list to add from, and *Reset layout* restores the
+  default arrangement.
+- **Launcher** — the default result *sort* and *file search*.
+- **Calendar** — the *holidays* region.
+- **System** — the *power profile* (Battery, Balanced, Performance).
+- **Advanced** — the settings file location, export or import a backup, and
+  reset everything to defaults.
+
+The search box at the top of the sidebar matches across every category and
+jumps straight to the setting you pick.
 
 ## Good to know
 
 - The bar appears on every connected screen.
+- If a Left or Right section holds more widgets than fit around the centre, the
+  extra widgets are clipped instead of overlapping the workspaces.
 - Your preferences and your app usage history are saved between sessions.
 - The layout is meant to feel consistent with the rest of the desktop: it is
   dark, understated, and keyboard-friendly.

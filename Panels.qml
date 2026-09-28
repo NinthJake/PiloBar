@@ -7,16 +7,19 @@ import QtQuick
 Singleton {
     id: root
 
-    // "" | launcher | calendar | network | sound | settings | monitors | windows
+    // "" | launcher | calendar | network | sound | windows
     property string active: ""
     property var ownerScreen: null
     property real openedAt: 0
 
-    // Window menu (running apps taskbar): which app keys to list, anchored to
-    // the clicked icon's x/width within the bar.
+    // Window menu (running apps taskbar): which app keys to list.
     property var windowsMenuApps: []
-    property real menuAnchorX: 0
-    property real menuAnchorW: 0
+
+    // Anchor of the widget that opened the current panel, in bar-local
+    // coordinates. -1 means no widget (opened via IPC), so the panel centers.
+    property real anchorX: -1
+    property real anchorW: 0
+    readonly property bool anchorValid: anchorX >= 0
 
     // Launcher has two presentations: anchored under the bar icon (bar button)
     // or centered spotlight (Super / IPC).
@@ -36,10 +39,22 @@ Singleton {
         return root.active === name && root.ownerScreen === screen
     }
 
-    function open(name, screen) {
+    function open(name, screen, item) {
         root.active = name
         root.ownerScreen = screen
         root.openedAt = Date.now()
+        setAnchor(item)
+    }
+
+    function setAnchor(item) {
+        if (item && item.width !== undefined) {
+            const p = item.mapToItem(null, 0, 0)
+            root.anchorX = p.x
+            root.anchorW = item.width
+        } else {
+            root.anchorX = -1
+            root.anchorW = 0
+        }
     }
 
     function close() {
@@ -55,26 +70,26 @@ Singleton {
             close()
     }
 
-    function toggle(name, screen) {
+    function toggle(name, screen, item) {
         if (isOpen(name, screen))
             close()
         else
-            open(name, screen)
+            open(name, screen, item)
     }
 
     function openWindowsMenu(apps, anchorX, anchorW, screen) {
         root.windowsMenuApps = apps
-        root.menuAnchorX = anchorX
-        root.menuAnchorW = anchorW
         open("windows", screen)
+        root.anchorX = anchorX
+        root.anchorW = anchorW
     }
 
-    function toggleLauncher(screen, anchored) {
+    function toggleLauncher(screen, anchored, item) {
         if (isOpen("launcher", screen) && root.launcherAnchored === anchored)
             close()
         else {
             root.launcherAnchored = anchored
-            open("launcher", screen)
+            open("launcher", screen, item)
         }
     }
 }

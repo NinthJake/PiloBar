@@ -14,6 +14,7 @@ Rectangle {
     implicitWidth: content.implicitWidth + 20
     implicitHeight: 32
     radius: 6
+    opacity: root.enabled ? 1 : 0.4
     color: mouse.containsMouse ? Theme.withAlpha(root.danger ? Theme.error : Theme.steel, 0.25) : "transparent"
     Behavior on color {
         ColorAnimation { duration: Theme.durFast }
