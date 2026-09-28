@@ -1,5 +1,7 @@
 # Pilo bar
 
+![Pilo bar preview](assets/preview.png)
+
 A desktop status bar for Hyprland. It sits on every monitor and replaces the
 old bar, while notifications, the wallpaper picker, and the clipboard keep
 working as before.
