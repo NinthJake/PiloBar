@@ -28,11 +28,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   columns, or remove (drag a row back to the palette).
 - **Bar spacer** widget, plus shared settings controls (`SettingRow`,
   `IconButton`, `TextField`).
+- **Centered chrome** — a content-sized rounded bar centered on the screen with
+  the three sections grouped together, flush against the docked edge. Replaces
+  the old Pill mode.
+- **Rounding** — a corner-radius slider for the Centered and Islands chrome,
+  plus a **Round all corners** toggle. With it off, corners on a screen edge
+  stay square, and the Islands `Gap` no longer floats the bar off the edge, so
+  the bar meets every screen edge it touches squarely.
+- **Auto-hide** — a Bar setting that slides the bar off its docked edge and
+  reveals it when the pointer touches that edge. The hide delay is adjustable
+  (0.1–2s); the reveal trigger is a thin strip on the edge (`pilo-trigger`). A
+  companion **Over windows** toggle (shown only while auto-hide is on) keeps the
+  bar floating over windows instead of reserving space for it.
 - IPC: `toggle monitors` / `toggle displays` opens the settings window on the
   Displays page.
 
 ### Changed
 
+- Chrome modes are now **Flush**, **Centered**, and **Islands**; the old Pill
+  mode was removed. A stored `pill` value migrates to `centered` on load.
+- Settings rows that don't apply (Rounding/Gap, Hide delay/Over windows) are now
+  dimmed and disabled instead of hidden, and explain why in a tooltip when
+  clicked.
 - Monitor configuration moved out of the bar into the settings app; the
   Monitors bar widget and `MonitorsPanel` were removed. Stored layout entries
   for widgets that no longer exist are migrated out on load.

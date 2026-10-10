@@ -14,7 +14,7 @@ Singleton {
         path: root.path
         watchChanges: false
         onAdapterUpdated: writeAdapter()
-        onLoaded: root.migrateLayout()
+        onLoaded: root.migrate()
 
         JsonAdapter {
             id: store
@@ -22,6 +22,11 @@ Singleton {
             property string edge: "top"
             property real opacity: 0.92
             property int gap: 8
+            property int rounding: 14
+            property bool roundAll: true
+            property bool autoHide: false
+            property int autoHideDelay: 300
+            property bool overWindows: false
             property string workspaceMode: "all"
             property string launcherSort: "frequent"
             property bool fileSearch: true
@@ -48,6 +53,11 @@ Singleton {
     readonly property alias edge: store.edge
     readonly property alias opacity: store.opacity
     readonly property alias gap: store.gap
+    readonly property alias rounding: store.rounding
+    readonly property alias roundAll: store.roundAll
+    readonly property alias autoHide: store.autoHide
+    readonly property alias autoHideDelay: store.autoHideDelay
+    readonly property alias overWindows: store.overWindows
     readonly property alias workspaceMode: store.workspaceMode
     readonly property alias launcherSort: store.launcherSort
     readonly property alias fileSearch: store.fileSearch
@@ -58,6 +68,11 @@ Singleton {
     function setEdge(v) { store.edge = v }
     function setOpacity(v) { store.opacity = v }
     function setGap(v) { store.gap = Math.max(0, Math.min(24, Math.round(v))) }
+    function setRounding(v) { store.rounding = Math.max(0, Math.min(24, Math.round(v))) }
+    function setRoundAll(v) { store.roundAll = v }
+    function setAutoHide(v) { store.autoHide = v }
+    function setAutoHideDelay(v) { store.autoHideDelay = Math.max(100, Math.min(2000, Math.round(v))) }
+    function setOverWindows(v) { store.overWindows = v }
     function setWorkspaceMode(v) { store.workspaceMode = v }
     function setLauncherSort(v) { store.launcherSort = v }
     function setFileSearch(v) { store.fileSearch = v }
@@ -138,6 +153,17 @@ Singleton {
         store.layout = BarWidgets.defaultLayout()
     }
 
+    function migrate() {
+        if (!file.loaded)
+            return
+        // "pill" chrome was replaced by "centered".
+        if (store.chrome === "pill")
+            store.chrome = "centered"
+        else if (store.chrome !== "flush" && store.chrome !== "centered" && store.chrome !== "islands")
+            store.chrome = "flush"
+        migrateLayout()
+    }
+
     // Drop layout entries for widgets that no longer exist (e.g. the removed
     // monitors widget) so they don't linger in the editor. Guarded on `loaded`
     // so a hot reload cannot rewrite the file from the adapter's defaults
@@ -171,6 +197,11 @@ Singleton {
         store.edge = "top"
         store.opacity = 0.92
         store.gap = 8
+        store.rounding = 14
+        store.roundAll = true
+        store.autoHide = false
+        store.autoHideDelay = 300
+        store.overWindows = false
         store.workspaceMode = "all"
         store.launcherSort = "frequent"
         store.fileSearch = true

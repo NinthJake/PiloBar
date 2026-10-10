@@ -72,8 +72,10 @@ collapse into a `+N` button.
 Open the gear icon for **Pilo Settings** — a regular desktop window with a
 category sidebar and search. Everything applies instantly and is saved.
 
-- **Bar** — *Chrome* (Flush, Pill, Islands), *Edge* (top or bottom), *Opacity*,
-  *Gap*, and *Workspaces* (all ten, or only occupied).
+- **Bar** — *Chrome* (Flush, Centered, Islands), *Rounding* and *Round all
+  corners* (Centered/Islands), *Edge* (top or bottom), *Opacity*, *Gap*,
+  *Auto-hide* (with a hide delay, plus an *Over windows* option to float the bar
+  over windows), and *Workspaces* (all ten, or only occupied).
 - **Displays** — drag the screen cards left or right to set how your monitors
   are arranged, and set each screen's *refresh rate* and *scale*. **Identify**
   flashes a big number on each screen so you can tell which one is which;

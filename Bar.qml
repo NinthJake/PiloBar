@@ -12,14 +12,54 @@ PanelWindow {
 
     property var barScreen: null
 
-    readonly property bool pill: Settings.chrome === "pill"
-    readonly property bool islands: Settings.chrome === "islands"
     readonly property bool flush: Settings.chrome === "flush"
-    readonly property int outer: (pill || islands) ? Settings.gap : 0
+    readonly property bool centered: Settings.chrome === "centered"
+    readonly property bool islands: Settings.chrome === "islands"
+    readonly property int outer: (islands && Settings.roundAll) ? Settings.gap : 0
 
     readonly property bool onTop: Settings.edge === "top"
 
-    // Space the bar occupies on the anchored edge, including the pill/islands
+    // Corner radius for a rounded shape. With `roundAll` off, corners that sit
+    // on a screen edge stay square: `docked` marks a corner on the docked
+    // (top/bottom) edge, `side` marks one on the left/right screen edge.
+    function cornerRadius(docked, side) {
+        return (Settings.roundAll || (!docked && !side)) ? Settings.rounding : 0
+    }
+
+    // ── auto-hide ───────────────────────────────────────────
+    // When enabled the bar slides off its docked edge and reappears when the
+    // pointer touches that edge (see `revealTrigger` below).
+    readonly property bool autoHide: Settings.autoHide
+    property bool barHidden: false
+
+    readonly property bool hiddenNow: bar.autoHide && bar.barHidden
+
+    // With auto-hide on, keep the bar floating over windows (no reserved
+    // strip) instead of pushing windows down while it is shown.
+    readonly property bool overlayWindows: bar.autoHide && Settings.overWindows
+
+    // Offset from the docked edge; negative slides the bar fully off-screen.
+    property real slide: hiddenNow ? -(Theme.barHeight + outer + 2) : outer
+
+    Behavior on slide {
+        NumberAnimation {
+            duration: Theme.durMed
+            easing.type: Theme.ease
+        }
+    }
+
+    function reveal() {
+        bar.barHidden = false
+        hideTimer.stop()
+    }
+
+    function scheduleHide() {
+        if (!bar.autoHide || Panels.active !== "" || barHover.hovered)
+            return
+        hideTimer.restart()
+    }
+
+    // Space the bar occupies on the anchored edge, including the islands
     // margin. The popup overlay stops at this so it never covers the bar.
     readonly property int strip: Theme.barHeight + outer
 
@@ -89,7 +129,8 @@ PanelWindow {
     screen: barScreen
     color: "transparent"
     implicitHeight: Theme.barHeight
-    exclusiveZone: Theme.barHeight + outer
+    exclusiveZone: (hiddenNow || bar.overlayWindows) ? -1 : (Theme.barHeight + outer)
+    mask: bar.centered ? centeredMask : null
 
     anchors {
         top: onTop
@@ -99,8 +140,8 @@ PanelWindow {
     }
 
     margins {
-        top: onTop ? outer : 0
-        bottom: onTop ? 0 : outer
+        top: onTop ? slide : 0
+        bottom: onTop ? 0 : slide
         left: outer
         right: outer
     }
@@ -109,12 +150,76 @@ PanelWindow {
     WlrLayershell.namespace: "pilo-bar"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
+    HoverHandler {
+        id: barHover
+        onHoveredChanged: {
+            if (hovered)
+                bar.reveal()
+            else
+                bar.scheduleHide()
+        }
+    }
+
+    Timer {
+        id: hideTimer
+        interval: Settings.autoHideDelay
+        onTriggered: {
+            if (bar.autoHide && Panels.active === "" && !barHover.hovered)
+                bar.barHidden = true
+        }
+    }
+
+    Connections {
+        target: Settings
+        function onAutoHideChanged() {
+            if (!Settings.autoHide)
+                bar.reveal()
+        }
+    }
+
+    Connections {
+        target: Panels
+        function onActiveChanged() {
+            if (Panels.active === "")
+                bar.scheduleHide()
+            else
+                bar.reveal()
+        }
+    }
+
+    // Thin strip on the docked edge that reveals the bar while it is hidden.
+    PanelWindow {
+        id: revealTrigger
+        screen: bar.screen
+        visible: bar.hiddenNow
+        color: "transparent"
+        exclusiveZone: -1
+
+        anchors {
+            top: bar.onTop
+            bottom: !bar.onTop
+            left: true
+            right: true
+        }
+
+        implicitHeight: 2
+
+        WlrLayershell.layer: WlrLayer.Top
+        WlrLayershell.namespace: "pilo-trigger"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            onEntered: bar.reveal()
+        }
+    }
+
     // ── background ──────────────────────────────────────────
     Rectangle {
         id: bgRect
         anchors.fill: parent
-        radius: bar.pill ? Theme.radius : 0
-        color: (bar.flush || bar.pill) ? Theme.withAlpha(Theme.bg, Settings.opacity) : "transparent"
+        color: bar.flush ? Theme.withAlpha(Theme.bg, Settings.opacity) : "transparent"
 
         Rectangle {
             visible: bar.flush
@@ -127,14 +232,40 @@ PanelWindow {
         }
     }
 
+    // Centered chrome: one content-sized capsule behind the three groups,
+    // flush against the docked edge with the inner corners rounded.
+    Rectangle {
+        id: centeredBg
+        visible: bar.centered
+        anchors.verticalCenter: parent.verticalCenter
+        height: Theme.barHeight
+        x: leftGroup.x
+        width: Math.max(0, (rightGroup.x + rightGroup.width) - leftGroup.x)
+        topLeftRadius: bar.cornerRadius(bar.onTop, false)
+        topRightRadius: bar.cornerRadius(bar.onTop, false)
+        bottomLeftRadius: bar.cornerRadius(!bar.onTop, false)
+        bottomRightRadius: bar.cornerRadius(!bar.onTop, false)
+        color: Theme.withAlpha(Theme.bg, Settings.opacity)
+    }
+
+    // In centered mode only the capsule is clickable; the empty sides pass
+    // clicks through to whatever is behind the bar.
+    Region {
+        id: centeredMask
+        item: centeredBg
+    }
+
     // ── left ────────────────────────────────────────────────
     Rectangle {
         id: leftGroup
-        anchors.left: parent.left
+        x: bar.centered ? (centerGroup.x - width - 4) : 0
         anchors.verticalCenter: parent.verticalCenter
-        width: Math.min(leftRow.implicitWidth + (bar.islands ? 12 : 16), bar.maxSideWidth)
+        width: bar.centered ? (leftRow.implicitWidth + 16) : Math.min(leftRow.implicitWidth + (bar.islands ? 12 : 16), bar.maxSideWidth)
         height: Theme.barHeight
-        radius: bar.islands ? Theme.radius : 0
+        topLeftRadius: bar.cornerRadius(bar.onTop, true)
+        topRightRadius: bar.cornerRadius(bar.onTop, false)
+        bottomLeftRadius: bar.cornerRadius(!bar.onTop, true)
+        bottomRightRadius: bar.cornerRadius(!bar.onTop, false)
         color: bar.islands ? Theme.withAlpha(Theme.bg, Settings.opacity) : "transparent"
         clip: true
 
@@ -160,11 +291,14 @@ PanelWindow {
     // ── center ──────────────────────────────────────────────
     Rectangle {
         id: centerGroup
-        anchors.horizontalCenter: parent.horizontalCenter
+        x: Math.round((parent.width - width) / 2)
         anchors.verticalCenter: parent.verticalCenter
         width: centerRow.implicitWidth + (bar.islands ? 12 : 16)
         height: Theme.barHeight
-        radius: bar.islands ? Theme.radius : 0
+        topLeftRadius: bar.cornerRadius(bar.onTop, false)
+        topRightRadius: bar.cornerRadius(bar.onTop, false)
+        bottomLeftRadius: bar.cornerRadius(!bar.onTop, false)
+        bottomRightRadius: bar.cornerRadius(!bar.onTop, false)
         color: bar.islands ? Theme.withAlpha(Theme.bg, Settings.opacity) : "transparent"
 
         Row {
@@ -185,11 +319,14 @@ PanelWindow {
     // ── right ───────────────────────────────────────────────
     Rectangle {
         id: rightGroup
-        anchors.right: parent.right
+        x: bar.centered ? (centerGroup.x + centerGroup.width + 4) : (parent.width - width)
         anchors.verticalCenter: parent.verticalCenter
-        width: Math.min(rightRow.implicitWidth + (bar.islands ? 12 : 16), bar.maxSideWidth)
+        width: bar.centered ? (rightRow.implicitWidth + 16) : Math.min(rightRow.implicitWidth + (bar.islands ? 12 : 16), bar.maxSideWidth)
         height: Theme.barHeight
-        radius: bar.islands ? Theme.radius : 0
+        topLeftRadius: bar.cornerRadius(bar.onTop, false)
+        topRightRadius: bar.cornerRadius(bar.onTop, true)
+        bottomLeftRadius: bar.cornerRadius(!bar.onTop, false)
+        bottomRightRadius: bar.cornerRadius(!bar.onTop, true)
         color: bar.islands ? Theme.withAlpha(Theme.bg, Settings.opacity) : "transparent"
         clip: true
 

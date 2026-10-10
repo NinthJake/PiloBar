@@ -21,7 +21,7 @@ All review items below are done. Implemented features are recorded in
    added a Power profile row to `SettingsPanel.qml`, still driven by
    `Power.qml` (`powerprofilesctl`).
 6. **Configurable chrome gap.** New `gap` setting (0–24, default 8) with a
-   slider in bar settings; `Bar.qml` uses it for the pill/islands margin and
+   slider in bar settings; `Bar.qml` uses it for the islands margin and
    `exclusiveZone`.
 7. **File search off but Files chip shown.** The launcher's scope chips are
    built from `Settings.fileSearch`; the Files chip is hidden when it is off,

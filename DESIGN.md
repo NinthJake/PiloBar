@@ -149,10 +149,15 @@ Drops from the gear. Changes apply immediately and persist.
 
 | Setting | Values | Default |
 |---|---|---|
-| Chrome | Flush, Pill, Islands | Flush |
+| Chrome | Flush, Centered, Islands | Flush |
 | Edge | Top, Bottom | Top |
-| Opacity | 0.6–1.0, step 0.05 | 0.92 |
+| Opacity | 0.5–1.0, step 0.05 | 0.92 |
 | Gap | 0–24px | 8 |
+| Rounding | 0–24px | 14 |
+| Round all corners | On, Off | On |
+| Auto-hide | On, Off | Off |
+| Hide delay | 0.1–2.0s | 0.3 |
+| Over windows | On, Off | Off |
 | Workspaces | All, Occupied | All |
 | Holidays | None, Sweden | Sweden |
 | Launcher sort | Name, Recent, Frequent | Frequent |
@@ -161,8 +166,10 @@ Drops from the gear. Changes apply immediately and persist.
 Chrome modes:
 
 - **Flush.** The default above. Square, edge-to-edge, 2px rule on the inner edge.
-- **Pill.** One detached bar. The `Gap` setting is the outer margin, 14px radius, no edge rule. `exclusiveZone` is height plus the margin on the screen edge.
-- **Islands.** The strip is transparent and still reserves space. Three capsules (left group, clock, right group), 14px radius, `Gap` from the screen edge and between groups. Each capsule uses the bar fill.
+- **Centered.** A content-sized capsule centered horizontally, flush against the docked edge. The three sections sit together as one group; the empty sides pass clicks through. The `Rounding` value sets the corner radius; with `Round all corners` off, only the side away from the docked edge is rounded.
+- **Islands.** The strip is transparent and still reserves space. Three capsules (left group, clock, right group). With `Round all corners` on, they float (`Gap` from the screen edge) with every corner rounded; with it off they sit flush and any corner on a screen edge stays square.
+
+Auto-hide: when on, the bar slides off its docked edge after the delay and a 2px trigger strip on that edge reveals it on hover. The reveal trigger is a separate `pilo-trigger` layer surface.
 
 No accent picker, no font picker, no plugin list. The palette stays fixed.
 
@@ -300,5 +307,5 @@ Do not edit pibble autostart, wallpaper, or cliphist. Other Super binds are left
 - Monitor icon opens a panel that arranges outputs left/right, sets refresh rate and scale, applies live, and persists to `monitors.lua`.
 - Running apps show as icons across all workspaces and monitors; right-click (or the `+N` chip) opens a menu that can focus, close, or force-kill each window, plus run the app's Desktop Entry actions (jump list).
 - Power profile is a row in bar settings, set through `powerprofilesctl`.
-- Gear switches chrome among Flush, Pill, and Islands, adjusts the gap, and the choices survive a restart.
+- Gear switches chrome among Flush, Centered, and Islands, toggles auto-hide, adjusts the gap, and the choices survive a restart.
 - Opening any panel closes whichever panel was already open.

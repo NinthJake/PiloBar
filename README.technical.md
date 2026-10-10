@@ -72,7 +72,9 @@ Everything is a layer-shell `PanelWindow`; there are no xdg-popups and no
 focus-grab objects. Per screen, `Bar.qml` creates:
 
 1. **The bar** — namespace `pilo-bar`, layer Top, `exclusiveZone` = bar height
-   (+ the pill/islands margin). Holds the three sections.
+   (+ the islands margin). Holds the three sections. With auto-hide on it slides
+   off the edge via `margins` and drops its `exclusiveZone`; a 2px
+   `pilo-trigger` strip on the edge reveals it on hover.
 2. **The panel overlay** — namespace `pilo-popup`, layer Overlay,
    `exclusiveZone: -1`. An invisible full-screen surface whose top/bottom margin
    equals the bar's strip, so it never covers the bar. A backdrop `MouseArea`
@@ -114,9 +116,10 @@ size.
 `Settings.qml` is a `FileView` + `JsonAdapter` at
 `$XDG_STATE_HOME/quickshell/by-shell/<id>/settings.json`. The adapter's
 properties are the settings; `onAdapterUpdated: writeAdapter()` persists them.
-Keys: `chrome`, `edge`, `opacity`, `gap`, `workspaceMode`, `launcherSort`,
-`fileSearch`, `holidays`, `layout` (bar widget arrangement), and `usage`
-(per-app launch counts/timestamps). `resetAll()` restores the defaults;
+Keys: `chrome`, `edge`, `opacity`, `gap`, `rounding`, `roundAll`, `autoHide`,
+`autoHideDelay`, `overWindows`, `workspaceMode`, `launcherSort`, `fileSearch`,
+`holidays`, `layout` (bar widget arrangement), and `usage` (per-app launch
+counts/timestamps). `resetAll()` restores the defaults;
 `exportTo(path)`/`importFrom(path)` copy the file (import reloads the adapter).
 
 `Panels.qml` holds all transient bar-panel UI state: which panel is open, on

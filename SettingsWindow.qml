@@ -171,6 +171,14 @@ FloatingWindow {
         }
     }
 
+    Tooltip {
+        z: 1000
+        visible: SettingsApp.tipVisible
+        text: SettingsApp.tipText
+        x: Math.max(8, Math.min(SettingsApp.tipX, parent.width - width - 8))
+        y: Math.min(SettingsApp.tipY + 14, parent.height - height - 8)
+    }
+
     Component { id: compBar; BarCategory {} }
     Component { id: compDisplays; DisplaysCategory {} }
     Component { id: compWidgets; WidgetsCategory {} }
