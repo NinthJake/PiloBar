@@ -6,9 +6,39 @@ import Quickshell.Services.Pipewire
 ShellRoot {
     id: root
 
+    // One bar per screen. The bar window is recreated when the edge changes
+    // (Settings -> Bar -> Edge) instead of re-anchoring the live layer surface
+    // in place: re-anchoring leaves the surface without a fresh configure on
+    // Hyprland, so it stops repainting (opacity changes stop showing) until
+    // the shell is restarted. A fresh window gets a fresh surface.
+    Component {
+        id: barComponent
+        Bar {}
+    }
+
     Variants {
         model: Quickshell.screens
-        Bar {}
+        delegate: Loader {
+            id: barLoader
+            required property var modelData
+            sourceComponent: barComponent
+            active: true
+            onLoaded: item.barScreen = modelData
+
+            Connections {
+                target: Settings
+                function onEdgeChanged() {
+                    barLoader.active = false
+                    barRecreateTimer.start()
+                }
+            }
+
+            Timer {
+                id: barRecreateTimer
+                interval: 60
+                onTriggered: barLoader.active = true
+            }
+        }
     }
 
     SettingsWindow {}

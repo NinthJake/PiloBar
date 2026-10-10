@@ -10,13 +10,14 @@ import qs.panels
 PanelWindow {
     id: bar
 
-    required property var modelData
+    property var barScreen: null
 
     readonly property bool pill: Settings.chrome === "pill"
     readonly property bool islands: Settings.chrome === "islands"
     readonly property bool flush: Settings.chrome === "flush"
-    readonly property bool onTop: Settings.edge === "top"
     readonly property int outer: (pill || islands) ? Settings.gap : 0
+
+    readonly property bool onTop: Settings.edge === "top"
 
     // Space the bar occupies on the anchored edge, including the pill/islands
     // margin. The popup overlay stops at this so it never covers the bar.
@@ -85,7 +86,7 @@ PanelWindow {
         return null
     }
 
-    screen: modelData
+    screen: barScreen
     color: "transparent"
     implicitHeight: Theme.barHeight
     exclusiveZone: Theme.barHeight + outer

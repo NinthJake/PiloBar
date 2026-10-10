@@ -43,9 +43,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   and clip overflow, so a section can never overlap the workspaces.
 - The gear opens the settings app instead of the old single-column settings
   panel; `panels/SettingsPanel.qml` was removed.
+- The opacity slider now ranges 50–100% (was 60–100%).
 
 ### Fixed
 
+- Changing the bar edge (Settings -> Bar -> Edge) no longer leaves the bar
+  stuck at full opacity until a restart. Re-anchoring a live layer surface on
+  Hyprland leaves it without a fresh configure, so it stops repainting; the bar
+  window is now recreated when the edge changes so it gets a fresh surface.
 - Widgets settings columns are equal width (the add-chip `Flow` no longer
   drives the column width).
 - An overfull bar section clips at its inner edge instead of overlapping the

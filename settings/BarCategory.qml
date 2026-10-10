@@ -51,8 +51,8 @@ ColumnLayout {
 
         Slider {
             Layout.fillWidth: true
-            value: (Settings.opacity - 0.6) / 0.4
-            onMoved: (v) => Settings.setOpacity(Math.round((0.6 + v * 0.4) * 100) / 100)
+            value: (Settings.opacity - 0.5) / 0.5
+            onMoved: (v) => Settings.setOpacity(Math.round((0.5 + v * 0.5) * 100) / 100)
         }
 
         Text {
