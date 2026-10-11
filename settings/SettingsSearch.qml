@@ -10,13 +10,13 @@ ColumnLayout {
 
     readonly property var index: [
         { category: "bar", label: "Chrome", keywords: "shape flush centered islands attached capsule" },
+        { category: "bar", label: "Shape", keywords: "rounded s-curve bevel concave inverted corner edge screen" },
         { category: "bar", label: "Rounding", keywords: "corner radius roundness curvature" },
-        { category: "bar", label: "Round all corners", keywords: "corner radius edge connect square" },
+        { category: "bar", label: "Attach to screen edges", keywords: "corner radius edge connect square merge flush" },
         { category: "bar", label: "Edge", keywords: "top bottom screen placement" },
         { category: "bar", label: "Opacity", keywords: "transparency alpha" },
-        { category: "bar", label: "Gap", keywords: "margin spacing distance" },
         { category: "bar", label: "Auto-hide", keywords: "hide reveal hover slide edge delay timeout" },
-        { category: "bar", label: "Over windows", keywords: "float overlay above windows reserve space autohide" },
+        { category: "bar", label: "Over windows", keywords: "float overlay above windows reserve space" },
         { category: "bar", label: "Workspaces", keywords: "all occupied numbers" },
         { category: "widgets", label: "Bar layout", keywords: "widgets arrange order move sections left center right" },
         { category: "displays", label: "Monitor arrangement", keywords: "displays monitors position left right drag identify order" },

@@ -32,8 +32,27 @@ ColumnLayout {
     SettingRow {
         available: Settings.chrome !== "flush"
         disabledReason: "Only used by the Centered and Islands chrome."
+        label: "Shape"
+        hint: "How the bar meets the screen edge in Centered and Islands modes."
+
+        Item { Layout.fillWidth: true }
+
+        Segmented {
+            options: [
+                { key: "rounded", label: "Rounded" },
+                { key: "s-curve", label: "S-curve" },
+                { key: "bevel", label: "Bevel" }
+            ]
+            value: Settings.shape
+            onSelected: (key) => Settings.setShape(key)
+        }
+    }
+
+    SettingRow {
+        available: Settings.chrome !== "flush"
+        disabledReason: "Only used by the Centered and Islands chrome."
         label: "Rounding"
-        hint: "Corner radius of the bar in Centered and Islands modes."
+        hint: "Corner radius, on the corners that do not touch a screen edge, or on every corner with Attach off."
 
         Slider {
             Layout.fillWidth: true
@@ -54,14 +73,14 @@ ColumnLayout {
     SettingRow {
         available: Settings.chrome !== "flush"
         disabledReason: "Only used by the Centered and Islands chrome."
-        label: "Round all corners"
-        hint: "Round every corner, or only the side away from the screen edge."
+        label: "Attach to screen edges"
+        hint: "Square off corners that meet a screen edge. For S-curve and Bevel this squares only the left/right edge corners, keeping the shape on the top."
 
         Item { Layout.fillWidth: true }
 
         Toggle {
-            checked: Settings.roundAll
-            onToggled: (value) => Settings.setRoundAll(value)
+            checked: Settings.attachEdges
+            onToggled: (value) => Settings.setAttachEdges(value)
         }
     }
 
@@ -95,28 +114,6 @@ ColumnLayout {
             Layout.preferredWidth: 40
             horizontalAlignment: Text.AlignRight
             text: Math.round(Settings.opacity * 100) + "%"
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSize - 1
-            color: Theme.fg
-        }
-    }
-
-    SettingRow {
-        available: Settings.chrome === "islands" && Settings.roundAll
-        disabledReason: Settings.chrome !== "islands" ? "Only used in Islands mode." : "Turn on Round all corners to float the bar off the edge."
-        label: "Gap"
-        hint: "Distance from the screen edge in Islands mode (with Round all corners on)."
-
-        Slider {
-            Layout.fillWidth: true
-            value: Settings.gap / 24
-            onMoved: (v) => Settings.setGap(v * 24)
-        }
-
-        Text {
-            Layout.preferredWidth: 40
-            horizontalAlignment: Text.AlignRight
-            text: Settings.gap + "px"
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize - 1
             color: Theme.fg
@@ -158,10 +155,8 @@ ColumnLayout {
     }
 
     SettingRow {
-        available: Settings.autoHide
-        disabledReason: "Turn on Auto-hide to use this."
         label: "Over windows"
-        hint: "Float the bar over windows instead of reserving space for it."
+        hint: "Float the bar over windows instead of reserving space for it. Works with or without Auto-hide."
 
         Item { Layout.fillWidth: true }
 

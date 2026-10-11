@@ -48,7 +48,7 @@ pilo/
     BarButton, LauncherButton, NetworkButton,
     SoundButton, SettingsButton, Taskbar, Workspaces, Clock, BarSpacer,
     PanelCard, Segmented, Slider, Toggle, ActionButton,
-    SettingRow, IconButton, TextField
+    SettingRow, IconButton, TextField, BarShape
   panels/              panel contents (no windows of their own)
     AppLauncher, CalendarPanel, NetworkPanel, SoundPanel, WindowsMenu
   settings/            settings window categories
@@ -74,7 +74,9 @@ focus-grab objects. Per screen, `Bar.qml` creates:
 1. **The bar** — namespace `pilo-bar`, layer Top, `exclusiveZone` = bar height
    (+ the islands margin). Holds the three sections. With auto-hide on it slides
    off the edge via `margins` and drops its `exclusiveZone`; a 2px
-   `pilo-trigger` strip on the edge reveals it on hover.
+   `pilo-trigger` strip on the edge reveals it on hover. **Over windows** also
+   drops the `exclusiveZone` (so the bar floats over windows) and works on its
+   own, without auto-hide.
 2. **The panel overlay** — namespace `pilo-popup`, layer Overlay,
    `exclusiveZone: -1`. An invisible full-screen surface whose top/bottom margin
    equals the bar's strip, so it never covers the bar. A backdrop `MouseArea`
@@ -116,10 +118,10 @@ size.
 `Settings.qml` is a `FileView` + `JsonAdapter` at
 `$XDG_STATE_HOME/quickshell/by-shell/<id>/settings.json`. The adapter's
 properties are the settings; `onAdapterUpdated: writeAdapter()` persists them.
-Keys: `chrome`, `edge`, `opacity`, `gap`, `rounding`, `roundAll`, `autoHide`,
-`autoHideDelay`, `overWindows`, `workspaceMode`, `launcherSort`, `fileSearch`,
-`holidays`, `layout` (bar widget arrangement), and `usage` (per-app launch
-counts/timestamps). `resetAll()` restores the defaults;
+Keys: `chrome`, `shape`, `edge`, `opacity`, `rounding`, `attachEdges`,
+`autoHide`, `autoHideDelay`, `overWindows`, `workspaceMode`, `launcherSort`,
+`fileSearch`, `holidays`, `layout` (bar widget arrangement), and `usage`
+(per-app launch counts/timestamps). `resetAll()` restores the defaults;
 `exportTo(path)`/`importFrom(path)` copy the file (import reloads the adapter).
 
 `Panels.qml` holds all transient bar-panel UI state: which panel is open, on
@@ -146,6 +148,32 @@ insertion index from the y position.
 `Settings.migrateLayout()` drops stored keys that are no longer in the registry
 (e.g. the removed `monitors` widget) on load; it is guarded on `FileView.loaded`
 so a hot reload cannot rewrite the file from the adapter's defaults.
+
+## Chrome shape
+
+`Settings.shape` (`rounded` default, `s-curve`, `bevel`) styles how the Centered
+and Islands chrome meets the docked screen edge, and `Settings.attachEdges`
+(default on) squares off the corners that sit on a screen edge. Corners that
+touch no screen edge always round with `Settings.rounding`. `Bar.qml`'s
+`cornerRadius(docked, side)` implements this for the `rounded` shape.
+
+S-curve and Bevel are always drawn (not gated on `attachEdges`). When the bar is
+attached, `attachEdges` squares only the docked corners that also sit on a
+left/right screen edge: for islands that is the outer docked corner of the left
+and right islands (`shapeLeftDocked`/`shapeRightDocked` on `BarShape`), while the
+centre island and the inner corners keep the shape. `overhang` is how far the
+shape flares past the body (`rounding` capped at half the bar height for S-curve,
+the full bar height for Bevel) and `sideInset` insets the outer islands while
+detached so a flare toward the screen edge is not clipped. Islands are always
+flush — the old Gap is gone — so `rounded`, or an attached bar, uses the existing
+`centeredBg`/group `Rectangle`s. For a custom shape, `widgets/BarShape.qml` draws
+the block with `QtQuick.Shapes`/`PathSvg`: S-curve is a concave cove at the docked
+corners with convex outer corners; Bevel is a straight flare that blends
+tangentially into a rounded outer corner (the fillet is scaled so its corner cut
+matches a plain rounded corner). Island shapes are drawn as unclipped siblings
+behind the groups (the groups themselves are `clip: true`); the outer groups sit
+at `sideInset` and `maxSideWidth` is reduced by it so they can't overlap the
+centre.
 
 ## Hyprland integration (and its gotchas)
 

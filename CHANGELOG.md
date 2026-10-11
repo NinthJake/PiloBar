@@ -35,15 +35,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Centered chrome** — a content-sized rounded bar centered on the screen with
   the three sections grouped together, flush against the docked edge. Replaces
   the old Pill mode.
-- **Rounding** — a corner-radius slider for the Centered and Islands chrome,
-  plus a **Round all corners** toggle. With it off, corners on a screen edge
-  stay square, and the Islands `Gap` no longer floats the bar off the edge, so
-  the bar meets every screen edge it touches squarely.
+- **Rounding** — a corner-radius slider for the Centered and Islands chrome.
+  It applies to corners that touch no screen edge, and to every corner while
+  **Attach to screen edges** is off.
+- **Shape** — a Bar setting choosing how the Centered and Islands chrome meets
+  the docked screen edge: **Rounded** (the previous look), **S-curve** (a concave
+  cove at the edge, convex away from it), or **Bevel** (a straight flare that
+  blends smoothly into a rounded outer corner; the fillet is scaled to match a
+  plain rounded corner).
+  S-curve and Bevel are drawn in Centered and Islands; the **Attach to screen
+  edges** toggle squares off the left/right screen-edge corners.
+- **Attach to screen edges** — replaces the old **Round all corners** toggle.
+  When on (default), the corners that meet a screen edge are square, so the bar
+  merges with the edge. With S-curve/Bevel this squares only the left/right
+  edge corners, keeping the shape along the top; turn it off to shape/round them
+  too.
 - **Auto-hide** — a Bar setting that slides the bar off its docked edge and
   reveals it when the pointer touches that edge. The hide delay is adjustable
-  (0.1–2s); the reveal trigger is a thin strip on the edge (`pilo-trigger`). A
-  companion **Over windows** toggle (shown only while auto-hide is on) keeps the
-  bar floating over windows instead of reserving space for it.
+  (0.1–2s); the reveal trigger is a thin strip on the edge (`pilo-trigger`).
+- **Over windows** — a Bar setting that keeps the bar floating over windows
+  instead of reserving screen space for it. It works on its own, with or without
+  Auto-hide.
 - IPC: `toggle monitors` / `toggle displays` opens the settings window on the
   Displays page.
 
@@ -51,9 +63,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Chrome modes are now **Flush**, **Centered**, and **Islands**; the old Pill
   mode was removed. A stored `pill` value migrates to `centered` on load.
-- Settings rows that don't apply (Rounding/Gap, Hide delay/Over windows) are now
-  dimmed and disabled instead of hidden, and explain why in a tooltip when
-  clicked.
+- Settings rows that don't apply (e.g. Hide delay) are now dimmed and disabled
+  instead of hidden, and explain why in a tooltip when clicked.
+- The Islands **Gap** setting was removed; islands always sit flush against the
+  screen edge, so a shaped or rounded bar never floats away from it.
 - Monitor configuration moved out of the bar into the settings app; the
   Monitors bar widget and `MonitorsPanel` were removed. Stored layout entries
   for widgets that no longer exist are migrated out on load.

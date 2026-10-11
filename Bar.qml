@@ -15,15 +15,25 @@ PanelWindow {
     readonly property bool flush: Settings.chrome === "flush"
     readonly property bool centered: Settings.chrome === "centered"
     readonly property bool islands: Settings.chrome === "islands"
-    readonly property int outer: (islands && Settings.roundAll) ? Settings.gap : 0
+
+    // Custom chrome shapes (S-curve, Bevel) flare past the body on the docked
+    // edge. They are always drawn; `attachEdges` only squares the docked
+    // corners that sit on a left/right screen edge. `overhang` is how far the
+    // shape reaches past the body; `sideInset` keeps the outer islands clear of
+    // the window edge so a flare toward the screen edge is not clipped.
+    readonly property bool customShape: !bar.flush && (Settings.shape === "s-curve" || Settings.shape === "bevel")
+    readonly property real shapeRadius: Math.min(Settings.rounding, Theme.barHeight / 2)
+    readonly property real overhang: !bar.customShape ? 0 : (Settings.shape === "bevel" ? Theme.barHeight : bar.shapeRadius)
+    readonly property real sideInset: (bar.islands && !Settings.attachEdges) ? bar.overhang : 0
 
     readonly property bool onTop: Settings.edge === "top"
 
-    // Corner radius for a rounded shape. With `roundAll` off, corners that sit
-    // on a screen edge stay square: `docked` marks a corner on the docked
-    // (top/bottom) edge, `side` marks one on the left/right screen edge.
+    // Corner radius for a rounded corner. Corners that sit on a screen edge —
+    // `docked` (top/bottom) or `side` (left/right) — stay square while the bar
+    // is attached to the edges, and take the radius otherwise. Corners that
+    // touch no screen edge always round.
     function cornerRadius(docked, side) {
-        return (Settings.roundAll || (!docked && !side)) ? Settings.rounding : 0
+        return (!Settings.attachEdges || (!docked && !side)) ? Settings.rounding : 0
     }
 
     // ── auto-hide ───────────────────────────────────────────
@@ -34,12 +44,12 @@ PanelWindow {
 
     readonly property bool hiddenNow: bar.autoHide && bar.barHidden
 
-    // With auto-hide on, keep the bar floating over windows (no reserved
-    // strip) instead of pushing windows down while it is shown.
-    readonly property bool overlayWindows: bar.autoHide && Settings.overWindows
+    // Float the bar over windows (no reserved strip) instead of pushing windows
+    // down. Works with or without auto-hide.
+    readonly property bool overlayWindows: Settings.overWindows
 
     // Offset from the docked edge; negative slides the bar fully off-screen.
-    property real slide: hiddenNow ? -(Theme.barHeight + outer + 2) : outer
+    property real slide: hiddenNow ? -(Theme.barHeight + 2) : 0
 
     Behavior on slide {
         NumberAnimation {
@@ -59,23 +69,23 @@ PanelWindow {
         hideTimer.restart()
     }
 
-    // Space the bar occupies on the anchored edge, including the islands
-    // margin. The popup overlay stops at this so it never covers the bar.
-    readonly property int strip: Theme.barHeight + outer
+    // Space the bar occupies on the anchored edge. The popup overlay stops at
+    // this so it never covers the bar.
+    readonly property int strip: Theme.barHeight
 
     // Where the bar window sits on the screen. Used to place the popup
     // overlay's cards under the right widget.
-    readonly property real barOriginX: outer
-    readonly property real barOriginY: onTop ? outer : (screen.height - Theme.barHeight - outer)
+    readonly property real barOriginX: 0
+    readonly property real barOriginY: onTop ? 0 : (screen.height - Theme.barHeight)
 
     // Widget that opened the current panel, in bar-local coordinates. Panels
     // opened via IPC (no widget) center on the screen.
-    readonly property real anchorCenterX: Panels.anchorValid ? (Panels.anchorX + Panels.anchorW / 2) : ((bar.screen.width - 2 * outer) / 2)
+    readonly property real anchorCenterX: Panels.anchorValid ? (Panels.anchorX + Panels.anchorW / 2) : (bar.screen.width / 2)
 
     // Left and right groups must stop before the centered group so a long
     // section cannot run under the workspaces. Overflow is clipped.
-    readonly property real effectiveWidth: bar.width > 0 ? bar.width : (bar.screen ? Math.max(0, bar.screen.width - 2 * outer) : 0)
-    readonly property real maxSideWidth: Math.max(0, (bar.effectiveWidth - centerGroup.width) / 2 - 6)
+    readonly property real effectiveWidth: bar.width > 0 ? bar.width : (bar.screen ? bar.screen.width : 0)
+    readonly property real maxSideWidth: Math.max(0, (bar.effectiveWidth - centerGroup.width) / 2 - 6 - bar.sideInset)
 
     // Identify overlay (settings app -> Displays).
     readonly property string identifyName: {
@@ -129,7 +139,7 @@ PanelWindow {
     screen: barScreen
     color: "transparent"
     implicitHeight: Theme.barHeight
-    exclusiveZone: (hiddenNow || bar.overlayWindows) ? -1 : (Theme.barHeight + outer)
+    exclusiveZone: (hiddenNow || bar.overlayWindows) ? -1 : Theme.barHeight
     mask: bar.centered ? centeredMask : null
 
     anchors {
@@ -142,8 +152,8 @@ PanelWindow {
     margins {
         top: onTop ? slide : 0
         bottom: onTop ? 0 : slide
-        left: outer
-        right: outer
+        left: 0
+        right: 0
     }
 
     WlrLayershell.layer: WlrLayer.Top
@@ -233,10 +243,12 @@ PanelWindow {
     }
 
     // Centered chrome: one content-sized capsule behind the three groups,
-    // flush against the docked edge with the inner corners rounded.
+    // flush against the docked edge with the inner corners rounded. Custom
+    // shapes are drawn by `centeredShape`; this stays as the input-region
+    // geometry in that case.
     Rectangle {
         id: centeredBg
-        visible: bar.centered
+        visible: bar.centered && !bar.customShape
         anchors.verticalCenter: parent.verticalCenter
         height: Theme.barHeight
         x: leftGroup.x
@@ -248,17 +260,60 @@ PanelWindow {
         color: Theme.withAlpha(Theme.bg, Settings.opacity)
     }
 
+    // Centered chrome with a custom shape.
+    BarShape {
+        id: centeredShape
+        visible: bar.centered && bar.customShape
+        x: centeredBg.x
+        y: centeredBg.y
+        width: centeredBg.width
+        height: Theme.barHeight
+        shape: Settings.shape
+        onTop: bar.onTop
+        radius: bar.shapeRadius
+        color: Theme.withAlpha(Theme.bg, Settings.opacity)
+        topLeftRadius: bar.shapeRadius
+        topRightRadius: bar.shapeRadius
+        bottomLeftRadius: bar.shapeRadius
+        bottomRightRadius: bar.shapeRadius
+    }
+
     // In centered mode only the capsule is clickable; the empty sides pass
     // clicks through to whatever is behind the bar.
     Region {
         id: centeredMask
-        item: centeredBg
+        shape: RegionShape.Rect
+        x: centeredBg.x
+        y: centeredBg.y
+        width: centeredBg.width
+        height: centeredBg.height
     }
 
     // ── left ────────────────────────────────────────────────
+    // Custom-shaped background for the left island (drawn behind the group, so
+    // it can flare past the group's bounds without being clipped by it).
+    BarShape {
+        id: leftShape
+        visible: bar.islands && bar.customShape
+        x: leftGroup.x
+        y: leftGroup.y
+        width: leftGroup.width
+        height: leftGroup.height
+        shape: Settings.shape
+        onTop: bar.onTop
+        radius: bar.shapeRadius
+        color: Theme.withAlpha(Theme.bg, Settings.opacity)
+        topLeftRadius: bar.cornerRadius(bar.onTop, true)
+        topRightRadius: bar.cornerRadius(bar.onTop, false)
+        bottomLeftRadius: bar.cornerRadius(!bar.onTop, true)
+        bottomRightRadius: bar.cornerRadius(!bar.onTop, false)
+        shapeLeftDocked: !Settings.attachEdges
+        shapeRightDocked: true
+    }
+
     Rectangle {
         id: leftGroup
-        x: bar.centered ? (centerGroup.x - width - 4) : 0
+        x: bar.centered ? (centerGroup.x - width - 4) : bar.sideInset
         anchors.verticalCenter: parent.verticalCenter
         width: bar.centered ? (leftRow.implicitWidth + 16) : Math.min(leftRow.implicitWidth + (bar.islands ? 12 : 16), bar.maxSideWidth)
         height: Theme.barHeight
@@ -266,7 +321,7 @@ PanelWindow {
         topRightRadius: bar.cornerRadius(bar.onTop, false)
         bottomLeftRadius: bar.cornerRadius(!bar.onTop, true)
         bottomRightRadius: bar.cornerRadius(!bar.onTop, false)
-        color: bar.islands ? Theme.withAlpha(Theme.bg, Settings.opacity) : "transparent"
+        color: (bar.islands && !bar.customShape) ? Theme.withAlpha(Theme.bg, Settings.opacity) : "transparent"
         clip: true
 
         Row {
@@ -289,6 +344,23 @@ PanelWindow {
     }
 
     // ── center ──────────────────────────────────────────────
+    BarShape {
+        id: centerShape
+        visible: bar.islands && bar.customShape
+        x: centerGroup.x
+        y: centerGroup.y
+        width: centerGroup.width
+        height: centerGroup.height
+        shape: Settings.shape
+        onTop: bar.onTop
+        radius: bar.shapeRadius
+        color: Theme.withAlpha(Theme.bg, Settings.opacity)
+        topLeftRadius: bar.cornerRadius(bar.onTop, false)
+        topRightRadius: bar.cornerRadius(bar.onTop, false)
+        bottomLeftRadius: bar.cornerRadius(!bar.onTop, false)
+        bottomRightRadius: bar.cornerRadius(!bar.onTop, false)
+    }
+
     Rectangle {
         id: centerGroup
         x: Math.round((parent.width - width) / 2)
@@ -299,7 +371,7 @@ PanelWindow {
         topRightRadius: bar.cornerRadius(bar.onTop, false)
         bottomLeftRadius: bar.cornerRadius(!bar.onTop, false)
         bottomRightRadius: bar.cornerRadius(!bar.onTop, false)
-        color: bar.islands ? Theme.withAlpha(Theme.bg, Settings.opacity) : "transparent"
+        color: (bar.islands && !bar.customShape) ? Theme.withAlpha(Theme.bg, Settings.opacity) : "transparent"
 
         Row {
             id: centerRow
@@ -317,9 +389,28 @@ PanelWindow {
     }
 
     // ── right ───────────────────────────────────────────────
+    BarShape {
+        id: rightShape
+        visible: bar.islands && bar.customShape
+        x: rightGroup.x
+        y: rightGroup.y
+        width: rightGroup.width
+        height: rightGroup.height
+        shape: Settings.shape
+        onTop: bar.onTop
+        radius: bar.shapeRadius
+        color: Theme.withAlpha(Theme.bg, Settings.opacity)
+        topLeftRadius: bar.cornerRadius(bar.onTop, false)
+        topRightRadius: bar.cornerRadius(bar.onTop, true)
+        bottomLeftRadius: bar.cornerRadius(!bar.onTop, false)
+        bottomRightRadius: bar.cornerRadius(!bar.onTop, true)
+        shapeLeftDocked: true
+        shapeRightDocked: !Settings.attachEdges
+    }
+
     Rectangle {
         id: rightGroup
-        x: bar.centered ? (centerGroup.x + centerGroup.width + 4) : (parent.width - width)
+        x: bar.centered ? (centerGroup.x + centerGroup.width + 4) : (parent.width - width - bar.sideInset)
         anchors.verticalCenter: parent.verticalCenter
         width: bar.centered ? (rightRow.implicitWidth + 16) : Math.min(rightRow.implicitWidth + (bar.islands ? 12 : 16), bar.maxSideWidth)
         height: Theme.barHeight
@@ -327,7 +418,7 @@ PanelWindow {
         topRightRadius: bar.cornerRadius(bar.onTop, true)
         bottomLeftRadius: bar.cornerRadius(!bar.onTop, false)
         bottomRightRadius: bar.cornerRadius(!bar.onTop, true)
-        color: bar.islands ? Theme.withAlpha(Theme.bg, Settings.opacity) : "transparent"
+        color: (bar.islands && !bar.customShape) ? Theme.withAlpha(Theme.bg, Settings.opacity) : "transparent"
         clip: true
 
         Row {

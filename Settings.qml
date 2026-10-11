@@ -19,11 +19,11 @@ Singleton {
         JsonAdapter {
             id: store
             property string chrome: "flush"
+            property string shape: "rounded"
             property string edge: "top"
             property real opacity: 0.92
-            property int gap: 8
             property int rounding: 14
-            property bool roundAll: true
+            property bool attachEdges: true
             property bool autoHide: false
             property int autoHideDelay: 300
             property bool overWindows: false
@@ -50,11 +50,11 @@ Singleton {
     }
 
     readonly property alias chrome: store.chrome
+    readonly property alias shape: store.shape
     readonly property alias edge: store.edge
     readonly property alias opacity: store.opacity
-    readonly property alias gap: store.gap
     readonly property alias rounding: store.rounding
-    readonly property alias roundAll: store.roundAll
+    readonly property alias attachEdges: store.attachEdges
     readonly property alias autoHide: store.autoHide
     readonly property alias autoHideDelay: store.autoHideDelay
     readonly property alias overWindows: store.overWindows
@@ -65,11 +65,11 @@ Singleton {
     readonly property alias layout: store.layout
 
     function setChrome(v) { store.chrome = v }
+    function setShape(v) { store.shape = v }
     function setEdge(v) { store.edge = v }
     function setOpacity(v) { store.opacity = v }
-    function setGap(v) { store.gap = Math.max(0, Math.min(24, Math.round(v))) }
     function setRounding(v) { store.rounding = Math.max(0, Math.min(24, Math.round(v))) }
-    function setRoundAll(v) { store.roundAll = v }
+    function setAttachEdges(v) { store.attachEdges = v }
     function setAutoHide(v) { store.autoHide = v }
     function setAutoHideDelay(v) { store.autoHideDelay = Math.max(100, Math.min(2000, Math.round(v))) }
     function setOverWindows(v) { store.overWindows = v }
@@ -161,6 +161,8 @@ Singleton {
             store.chrome = "centered"
         else if (store.chrome !== "flush" && store.chrome !== "centered" && store.chrome !== "islands")
             store.chrome = "flush"
+        if (store.shape !== "rounded" && store.shape !== "s-curve" && store.shape !== "bevel")
+            store.shape = "rounded"
         migrateLayout()
     }
 
@@ -194,11 +196,11 @@ Singleton {
 
     function resetAll() {
         store.chrome = "flush"
+        store.shape = "rounded"
         store.edge = "top"
         store.opacity = 0.92
-        store.gap = 8
         store.rounding = 14
-        store.roundAll = true
+        store.attachEdges = true
         store.autoHide = false
         store.autoHideDelay = 300
         store.overWindows = false
