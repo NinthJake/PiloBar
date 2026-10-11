@@ -1,6 +1,6 @@
 # Pilo bar
 
-![Pilo bar preview](assets/preview.png)
+![Pilo bar chrome: Flush, Centered, Islands](assets/bar.gif)
 
 A desktop status bar for Hyprland. It sits on every monitor and replaces the
 old bar, while notifications, the wallpaper picker, and the clipboard keep
@@ -71,6 +71,8 @@ collapse into a `+N` button.
 
 Open the gear icon for **Pilo Settings** — a regular desktop window with a
 category sidebar and search. Everything applies instantly and is saved.
+
+![Pilo Settings categories](assets/settings.gif)
 
 - **Bar** — *Chrome* (Flush, Centered, Islands), *Rounding* and *Round all
   corners* (Centered/Islands), *Edge* (top or bottom), *Opacity*, *Gap*,
