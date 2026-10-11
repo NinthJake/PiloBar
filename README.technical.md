@@ -163,6 +163,10 @@ dispatchers:
 - **Running windows** come from `hyprctl clients -j` and are rebuilt on
   Hyprland events (debounced), not bound to `Hyprland.toplevels`, which did not
   stay live.
+- **Custom app icons.** `RunningApps.qml` looks up `assets/icons/<class>.svg`
+  (matched by window class, or its last dotted segment) and uses it when it
+  exists, falling back to the desktop-entry icon. The bundled SVGs are drawn
+  white so they read on the dark bar (OpenCode is inverted).
 - **Monitors are configured in a separate file.** `hyprland.lua` no longer
   lists monitors; it does
   `for _, m in ipairs(require("monitors")) do hl.monitor(m) end`, reading

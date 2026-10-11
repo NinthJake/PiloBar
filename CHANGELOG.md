@@ -28,6 +28,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   columns, or remove (drag a row back to the palette).
 - **Bar spacer** widget, plus shared settings controls (`SettingRow`,
   `IconButton`, `TextField`).
+- **Custom app icons** — the running-apps taskbar and its window menu use a
+  per-app SVG from `assets/icons/<class>.svg` when one exists (matched by window
+  class, or the last dotted segment of it), and fall back to the desktop-entry
+  icon otherwise.
 - **Centered chrome** — a content-sized rounded bar centered on the screen with
   the three sections grouped together, flush against the docked edge. Replaces
   the old Pill mode.

@@ -13,6 +13,30 @@ Singleton {
 
     property var groups: []
 
+    // Custom per-app icons in assets/icons/<class>.svg, matched by window class
+    // (or the last dotted segment of it). Apps without a custom icon fall back
+    // to their desktop-entry icon.
+    readonly property string iconsDir: Qt.resolvedUrl("assets/icons").toString().replace("file://", "")
+    property var customIcons: []
+
+    Process {
+        id: iconsProc
+        command: ["sh", "-c", "ls -1 '" + root.iconsDir + "' 2>/dev/null"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let names = []
+                const lines = text.split("\n")
+                for (let i = 0; i < lines.length; i++) {
+                    const n = lines[i].trim()
+                    if (n.toLowerCase().endsWith(".svg"))
+                        names.push(n.substring(0, n.length - 4))
+                }
+                root.customIcons = names
+                root.refresh()
+            }
+        }
+    }
+
     Process {
         id: clientsProc
         command: ["hyprctl", "clients", "-j"]
@@ -42,11 +66,31 @@ Singleton {
         }
     }
 
-    Component.onCompleted: refresh()
+    Component.onCompleted: {
+        refresh()
+        iconsProc.running = true
+    }
 
     function refresh() {
         if (!clientsProc.running)
             clientsProc.running = true
+    }
+
+    // Resolve an app's icon: a custom asset if one exists for the class, else
+    // the desktop-entry icon, else a generic fallback.
+    function iconFor(key, entry) {
+        const keyLc = key.toLowerCase()
+        const dot = keyLc.lastIndexOf(".")
+        const last = dot !== -1 ? keyLc.substring(dot + 1) : keyLc
+        const custom = root.customIcons
+        for (let i = 0; i < custom.length; i++) {
+            const c = custom[i].toLowerCase()
+            if (c === keyLc || c === last)
+                return Qt.resolvedUrl("assets/icons/" + custom[i] + ".svg").toString()
+        }
+        if (entry && entry.icon && entry.icon.length > 0)
+            return Quickshell.iconPath(entry.icon, "application-x-executable")
+        return Quickshell.iconPath(keyLc, "application-x-executable")
     }
 
     function monitorName(id) {
@@ -97,7 +141,7 @@ Singleton {
         for (let i = 0; i < order.length; i++) {
             const g = map[order[i]]
             const entry = DesktopEntries.heuristicLookup(g.key)
-            g.icon = (entry && entry.icon && entry.icon.length > 0) ? Quickshell.iconPath(entry.icon, "application-x-executable") : Quickshell.iconPath(g.key.toLowerCase(), "application-x-executable")
+            g.icon = root.iconFor(g.key, entry)
             g.name = (entry && entry.name && entry.name.length > 0) ? entry.name : g.key
             // Desktop Entry actions (jump list): Store/Library/etc. for Steam.
             g.actions = (entry && entry.actions) ? entry.actions : []
