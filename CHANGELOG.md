@@ -9,6 +9,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Theming** — a `Themes.qml` registry of colour schemes and a **Theming**
+  category in the settings app. Each scheme is previewed as a card (its own
+  colours) and picking one repaints the bar live; the choice is persisted as
+  `Settings.theme` and restored on login. Built-ins: **Vague** (default, the
+  bar's original palette), **Gruvbox**, **Frost**, **Everforest**,
+  **Rosé Pine**, **Catppuccin** (Mocha), **Dracula**, **Material**, **Nord**.
+- **Hyprland themes with the bar** — the Hyprland "Look and feel" block moved
+  out of `hyprland.lua` into a generated `~/.config/hypr/lookandfeel.lua`, which
+  the bar writes from a `HyprTheme.qml` singleton (structural values plus the
+  active theme's border/background colours) and `hyprland.lua` loads with
+  `require()`. Switching a theme recolours the compositor instantly via
+  `hyprctl eval` (Hyprland 0.56 rejects `hyprctl keyword` for these options);
+  the file covers the next login. The Theming category also exposes **inner/outer
+  gaps, border size, window rounding, and blur** as persisted settings, applied
+  live the same way. The file is gitignored like `monitors.lua`. pibble is still
+  future work.
+- **KDE apps (Dolphin) theme with the bar** — `KdeTheme.qml` generates a KDE
+  colour scheme under `~/.local/share/color-schemes/Pilo-<theme>.colors` from the
+  active theme and applies it with `plasma-apply-colorscheme`, which rewrites
+  `~/.config/kdeglobals` and notifies the session. KDE needs more colour roles
+  than the bar's tokens, so the scheme derives window/view/button/selection/
+  tooltip backgrounds and the foreground roles from the palette. Dolphin follows
+  (verified).
+- **foot terminal themes with the bar** — `FootTheme.qml` generates
+  `~/.config/foot/colors.ini` (gitignored) from the active theme and sends
+  running foot instances `SIGUSR1` to reload. `foot.ini` includes the file from
+  its `[main]` section and keeps only the structural options (`alpha`, `blur`)
+  in `[colors-dark]`. The 16-colour ANSI palette maps the bar tokens (black=line,
+  red=error, green=plus, yellow=warning, blue=steel, magenta=accent, cyan=a
+  lightened steel, white=fg), with selection and cursor on the accent.
 - **Settings app** — a standalone `FloatingWindow` (`SettingsWindow.qml`),
   opened from the gear or `qs -c pilo ipc call pilo toggle settings`. A
   searchable category sidebar holds **Bar**, **Displays**, **Widgets**,

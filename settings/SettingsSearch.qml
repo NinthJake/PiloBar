@@ -18,6 +18,12 @@ ColumnLayout {
         { category: "bar", label: "Auto-hide", keywords: "hide reveal hover slide edge delay timeout" },
         { category: "bar", label: "Over windows", keywords: "float overlay above windows reserve space" },
         { category: "bar", label: "Workspaces", keywords: "all occupied numbers" },
+        { category: "theming", label: "Theme", keywords: "theme palette colours colors scheme appearance dark bar accent vague gruvbox frost everforest rose pine catppuccin dracula material nord terminal foot" },
+        { category: "theming", label: "Inner gaps", keywords: "hyprland gaps window spacing" },
+        { category: "theming", label: "Outer gaps", keywords: "hyprland gaps screen edge spacing" },
+        { category: "theming", label: "Border size", keywords: "hyprland border width focus" },
+        { category: "theming", label: "Window rounding", keywords: "hyprland rounding corner radius" },
+        { category: "theming", label: "Blur", keywords: "hyprland blur frosted translucent" },
         { category: "widgets", label: "Bar layout", keywords: "widgets arrange order move sections left center right" },
         { category: "displays", label: "Monitor arrangement", keywords: "displays monitors position left right drag identify order" },
         { category: "displays", label: "Identify displays", keywords: "number id screen label which monitor" },
@@ -31,6 +37,7 @@ ColumnLayout {
 
     function categoryLabel(key) {
         if (key === "bar") return "Bar"
+        if (key === "theming") return "Theming"
         if (key === "displays") return "Displays"
         if (key === "widgets") return "Widgets"
         if (key === "launcher") return "Launcher"

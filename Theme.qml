@@ -6,16 +6,18 @@ import QtQuick
 Singleton {
     id: root
 
-    // palette — vague.nvim, matches waybar
-    readonly property color bg: "#141415"
-    readonly property color fg: "#cdcdcd"
-    readonly property color line: "#252530"
-    readonly property color muted: "#606079"
-    readonly property color teal: "#b4d4cf"
-    readonly property color steel: "#6e94b2"
-    readonly property color error: "#d8647e"
-    readonly property color warning: "#f3be7c"
-    readonly property color plus: "#7fa563"
+    // palette — resolved from the active scheme (Themes.qml), persisted in
+    // Settings.theme. The token names are stable so every widget is unchanged.
+    readonly property var scheme: Themes.find(Settings.theme)
+    readonly property color bg: scheme.bg
+    readonly property color fg: scheme.fg
+    readonly property color line: scheme.line
+    readonly property color muted: scheme.muted
+    readonly property color teal: scheme.teal
+    readonly property color steel: scheme.steel
+    readonly property color error: scheme.error
+    readonly property color warning: scheme.warning
+    readonly property color plus: scheme.plus
 
     readonly property string fontFamily: "FiraCode Nerd Font"
     readonly property int fontSize: 13
@@ -61,6 +63,7 @@ Singleton {
     readonly property string glyphTrash: "\uf1f8"
     readonly property string glyphLayout: "\uf00a"
     readonly property string glyphCalendar: "\uf073"
+    readonly property string glyphTheme: "\uf53f"
 
     function withAlpha(c, a) {
         return Qt.rgba(c.r, c.g, c.b, a)

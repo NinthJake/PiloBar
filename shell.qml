@@ -43,6 +43,14 @@ ShellRoot {
 
     SettingsWindow {}
 
+    // Instantiate the compositor, KDE, and terminal theme owners and apply once
+    // at start; they re-apply on theme changes via their own Connections.
+    Component.onCompleted: {
+        HyprTheme.apply()
+        KdeTheme.apply()
+        FootTheme.apply()
+    }
+
     // Bind the audio nodes we display so their volume/mute properties stay live.
     PwObjectTracker {
         objects: {

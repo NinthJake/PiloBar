@@ -12,6 +12,7 @@ FloatingWindow {
 
     readonly property var categories: [
         { key: "bar", label: "Bar", glyph: Theme.glyphLayout },
+        { key: "theming", label: "Theming", glyph: Theme.glyphTheme },
         { key: "displays", label: "Displays", glyph: Theme.glyphMonitor },
         { key: "widgets", label: "Widgets", glyph: Theme.glyphApps },
         { key: "launcher", label: "Launcher", glyph: Theme.glyphSearch },
@@ -21,6 +22,8 @@ FloatingWindow {
     ]
 
     function categoryComponent(key) {
+        if (key === "theming")
+            return compTheming
         if (key === "displays")
             return compDisplays
         if (key === "widgets")
@@ -180,6 +183,7 @@ FloatingWindow {
     }
 
     Component { id: compBar; BarCategory {} }
+    Component { id: compTheming; ThemingCategory {} }
     Component { id: compDisplays; DisplaysCategory {} }
     Component { id: compWidgets; WidgetsCategory {} }
     Component { id: compLauncher; LauncherCategory {} }
