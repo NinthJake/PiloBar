@@ -9,9 +9,23 @@ import qs.widgets
 ColumnLayout {
     id: root
 
-    readonly property real cardW: 150
     readonly property real cardH: 86
     readonly property real cardGap: 8
+    // Shrink the arrangement cards to fit the row, so many screens still show.
+    readonly property real cardW: {
+        const n = Math.max(1, Displays.order.length)
+        const avail = Math.max(120, arrangeArea.width - 24)
+        return Math.max(64, Math.min(150, Math.floor((avail - (n - 1) * cardGap) / n)))
+    }
+    readonly property bool compactCards: cardW < 110
+
+    // Setting-box grid: aim for ~280px boxes and fill each row.
+    readonly property real boxGap: 12
+    readonly property real boxW: {
+        const avail = Math.max(200, boxesFlow.width)
+        const cols = Math.max(1, Math.floor((avail + boxGap) / (280 + boxGap)))
+        return Math.floor((avail - (cols - 1) * boxGap) / cols)
+    }
 
     property bool dragActive: false
     property int dragFromIndex: -1
@@ -120,28 +134,37 @@ ColumnLayout {
                     opacity: root.dragActive && root.dragFromIndex === card.index ? 0.4 : 1
 
                     Column {
-                        anchors.centerIn: parent
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: card.width - 10
                         spacing: 2
 
                         Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Display " + (card.index + 1)
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            text: root.compactCards ? String(card.index + 1) : "Display " + (card.index + 1)
                             font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize + 2
+                            font.pixelSize: root.compactCards ? Theme.fontSize + 3 : Theme.fontSize + 2
                             font.bold: true
                             color: Theme.teal
                         }
 
                         Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
                             text: card.modelData
                             font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize
+                            font.pixelSize: Theme.fontSize - 1
                             color: Theme.fg
                         }
 
                         Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            visible: !root.compactCards
                             text: card.mon ? card.mon.width + "x" + card.mon.height : ""
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 2
@@ -228,37 +251,41 @@ ColumnLayout {
     }
 
     // ── per-monitor settings ────────────────────────────────
-    ColumnLayout {
+    // Boxes wrap into a grid so the page scales to many screens.
+    Flow {
+        id: boxesFlow
         Layout.fillWidth: true
-        spacing: 8
+        spacing: root.boxGap
 
         Repeater {
             model: Displays.order
 
             delegate: Rectangle {
-                id: detail
+                id: box
                 required property string modelData
                 required property int index
 
                 readonly property var mon: Displays.monitorByName(modelData)
 
-                Layout.fillWidth: true
-                implicitHeight: mon ? 96 : 0
+                width: root.boxW
+                implicitHeight: 124
                 visible: mon !== null
-                radius: 6
+                radius: 8
                 color: Theme.withAlpha(Theme.line, 0.3)
+                border.width: 1
+                border.color: Theme.withAlpha(Theme.line, 0.7)
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 6
+                    anchors.margins: 12
+                    spacing: 8
 
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 8
 
                         Text {
-                            text: "Display " + (detail.index + 1)
+                            text: "Display " + (box.index + 1)
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 1
                             font.bold: true
@@ -267,7 +294,7 @@ ColumnLayout {
 
                         Text {
                             Layout.fillWidth: true
-                            text: detail.modelData + "   " + (detail.mon ? detail.mon.width + "x" + detail.mon.height : "")
+                            text: box.modelData
                             elide: Text.ElideRight
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 1
@@ -275,9 +302,9 @@ ColumnLayout {
                         }
 
                         Text {
-                            text: detail.mon ? Displays.roundRefresh(detail.mon.refreshRate) + " Hz" : ""
+                            text: box.mon ? box.mon.width + "x" + box.mon.height : ""
                             font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 1
+                            font.pixelSize: Theme.fontSize - 2
                             color: Theme.muted
                         }
                     }
@@ -287,19 +314,18 @@ ColumnLayout {
                         spacing: 8
 
                         Text {
-                            Layout.preferredWidth: 56
+                            Layout.preferredWidth: 52
                             text: "Refresh"
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 1
                             color: Theme.muted
                         }
 
-                        Item { Layout.fillWidth: true }
-
-                        Segmented {
-                            options: detail.mon ? Displays.refreshOptions(detail.modelData) : []
-                            value: Displays.refreshKey(detail.modelData)
-                            onSelected: (key) => Displays.setRefresh(detail.modelData, key)
+                        Dropdown {
+                            Layout.fillWidth: true
+                            options: box.mon ? Displays.refreshOptions(box.modelData) : []
+                            value: Displays.refreshKey(box.modelData)
+                            onSelected: (key) => Displays.setRefresh(box.modelData, key)
                         }
                     }
 
@@ -308,19 +334,18 @@ ColumnLayout {
                         spacing: 8
 
                         Text {
-                            Layout.preferredWidth: 56
+                            Layout.preferredWidth: 52
                             text: "Scale"
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 1
                             color: Theme.muted
                         }
 
-                        Item { Layout.fillWidth: true }
-
-                        Segmented {
+                        Dropdown {
+                            Layout.fillWidth: true
                             options: Displays.scaleOptions
-                            value: Displays.scaleKey(detail.modelData)
-                            onSelected: (key) => Displays.setScale(detail.modelData, key)
+                            value: Displays.scaleKey(box.modelData)
+                            onSelected: (key) => Displays.setScale(box.modelData, key)
                         }
                     }
                 }

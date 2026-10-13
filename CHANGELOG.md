@@ -108,6 +108,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The gear opens the settings app instead of the old single-column settings
   panel; `panels/SettingsPanel.qml` was removed.
 - The opacity slider now ranges 50–100% (was 60–100%).
+- The Displays page lays each monitor out as a box in a wrapping, responsive
+  grid (aiming for ~280px boxes) with the refresh-rate and scale dropdowns,
+  instead of a full-width list; the arrangement cards shrink to fit when there
+  are many screens.
 
 ### Fixed
 
@@ -121,6 +125,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   centre.
 - Layout migration is guarded on `FileView.loaded`, so a hot reload can't
   rewrite the settings file from the adapter's defaults.
+- The Displays refresh dropdown now shows the current mode. The reported rate is
+  matched to the nearest available mode key (e.g. 239.95799 → "239.96");
+  previously the rounded value matched no option and the picker was blank.
 
 ## [0.1.0] — Initial bar
 

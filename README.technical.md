@@ -52,7 +52,7 @@ pilo/
     BarButton, LauncherButton, NetworkButton,
     SoundButton, SettingsButton, Taskbar, Workspaces, Clock, BarSpacer,
     PanelCard, Segmented, Slider, Toggle, ActionButton,
-    SettingRow, IconButton, TextField, BarShape
+    SettingRow, IconButton, TextField, BarShape, Dropdown, Tooltip
   panels/              panel contents (no windows of their own)
     AppLauncher, CalendarPanel, NetworkPanel, SoundPanel, WindowsMenu
   settings/            settings window categories
@@ -308,6 +308,10 @@ Prefer native Quickshell services; shell out only where needed.
   `HyprlandFocusGrab` dismissed the panel on the first click under Hyprland, so
   the overlay model above replaced it. Do not reintroduce popups for the
   anchored panels.
+- **Settings dropdowns use a Qt `Popup`.** `widgets/Dropdown.qml` opens a
+  `QtQuick.Controls` `Popup`, which renders in the settings `FloatingWindow`
+  overlay so it is not clipped by the settings `Flickable`. This is unrelated to
+  the anchored bar panels above, which stay plain `PanelWindow` layers.
 - **Panel heights follow content.** Long lists are capped (Wi-Fi 220, Bluetooth
   180, outputs 180, monitors 460, window menu 400) and scroll.
 - **Bar sections cannot overlap.** The left and right groups are capped at
@@ -340,7 +344,8 @@ Prefer native Quickshell services; shell out only where needed.
 - Add a settings category: a `ColumnLayout` in `settings/` built from
   `CategoryHeading` and `SettingRow`, wire it into `SettingsWindow.qml`
   (`categories`, `categoryComponent`, a `Component`), and add its settings to
-  the `SettingsSearch` index.
+  the `SettingsSearch` index. Row controls: `Segmented`, `Toggle`, `Slider`,
+  `TextField`, or `Dropdown` for a compact select.
 - Validate the Lua config after editing it:
   `luajit -bl ~/.config/hypr/hyprland.lua >/dev/null`, then
   `hyprctl reload` and `hyprctl configerrors`.

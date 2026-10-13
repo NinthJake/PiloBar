@@ -60,17 +60,32 @@ Singleton {
             if (seen[key])
                 continue
             seen[key] = true
-            out.push({ key: key, label: key })
+            out.push({ key: key, label: key + " Hz" })
         }
         out.sort((a, b) => parseFloat(b.key) - parseFloat(a.key))
         return out
     }
 
     function refreshKey(name) {
-        const m = monitorByName(name)
         if (refreshPick[name] !== undefined)
             return String(refreshPick[name])
-        return m ? String(roundRefresh(m.refreshRate)) : ""
+        const m = monitorByName(name)
+        if (!m)
+            return ""
+        // Match the current rate to an option key so the picker shows a
+        // selection (the reported rate and the mode string rarely agree
+        // exactly, e.g. 239.95799 vs "239.96").
+        const opts = refreshOptions(name)
+        let best = ""
+        let bestDiff = Infinity
+        for (let i = 0; i < opts.length; i++) {
+            const diff = Math.abs(parseFloat(opts[i].key) - m.refreshRate)
+            if (diff < bestDiff) {
+                bestDiff = diff
+                best = opts[i].key
+            }
+        }
+        return best !== "" ? best : String(roundRefresh(m.refreshRate))
     }
 
     function scaleKey(name) {
