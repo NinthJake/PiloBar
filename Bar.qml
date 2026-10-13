@@ -480,7 +480,7 @@ PanelWindow {
         CalendarPanel {
             id: calendarPanel
             visible: Panels.isOpen("calendar", bar.screen)
-            width: 320
+            width: calendarPanel.implicitWidth
             height: calendarPanel.implicitHeight
             x: bar.panelX(width)
             y: bar.panelY(height)

@@ -20,7 +20,8 @@ Three sections, left to right:
   all ten or only the ones in use (bar settings).
 
 **Right**
-- **Clock** — 24-hour time. Click it to open the calendar.
+- **Clock** — the time, 24-hour by default. You can switch to a 12-hour (AM/PM)
+  or custom format and add the day and/or date. Click it to open the calendar.
 - **Network & Bluetooth** — connection status and controls.
 - **Sound** — volume and output device.
 - **Settings** — customize the bar and arrange your screens.
@@ -39,12 +40,19 @@ switch between apps and files. The buttons along the bottom let you shut down,
 reboot, sign out, or suspend; the destructive ones ask for confirmation first.
 The search box is empty every time it opens.
 
-## Calendar
+## Clock & calendar
 
-Opens under the clock. Move between months with the arrows, the left/right
-arrow keys, or the scroll wheel. Today is highlighted. Swedish holidays are
-marked in amber; turn them off, or back on, in bar settings. Hovering a holiday
-shows its name at the bottom.
+The clock sits on the bar and opens the calendar when clicked. In **Clock /
+Calendar** settings you choose the time format (24-hour, 12-hour AM/PM, or your
+own pattern), and what the bar shows — the clock alone, or with the date and/or
+the day name. If a date is shown you pick its format (presets or your own), and
+if the day name is shown you pick full (`Monday`) or short (`Mon`).
+
+The calendar opens under the clock. Move between months with the arrows, the
+left/right arrow keys, or the scroll wheel. Today is highlighted. Holidays are
+marked in amber and their name shows in the footer. You can set the first day of
+the week (Monday or Sunday), show ISO week numbers, turn holiday marks off or
+on, and hide the holiday-name footer.
 
 ## Control panels
 
@@ -93,7 +101,8 @@ category sidebar and search. Everything applies instantly and is saved.
   column's **+** opens a list to add from, and *Reset layout* restores the
   default arrangement.
 - **Launcher** — the default result *sort* and *file search*.
-- **Calendar** — the *holidays* region.
+- **Clock / Calendar** — the clock's time format and contents, the date/day
+  formats, holidays, first day of week, week numbers, and the holiday footer.
 - **System** — the *power profile* (Battery, Balanced, Performance).
 - **Advanced** — the settings file location, export or import a backup, and
   reset everything to defaults.

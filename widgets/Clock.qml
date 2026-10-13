@@ -11,7 +11,7 @@ Item {
 
     SystemClock {
         id: clock
-        precision: SystemClock.Minutes
+        precision: ClockFormat.wantsSeconds ? SystemClock.Seconds : SystemClock.Minutes
     }
 
     Rectangle {
@@ -27,7 +27,7 @@ Item {
     Text {
         id: label
         anchors.centerIn: parent
-        text: Qt.formatDateTime(clock.date, "HH:mm")
+        text: ClockFormat.barText(clock.date)
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fontSize
         font.bold: true

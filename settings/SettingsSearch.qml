@@ -30,7 +30,14 @@ ColumnLayout {
         { category: "displays", label: "Refresh rate and scale", keywords: "hz resolution monitor reset" },
         { category: "launcher", label: "Launcher sort", keywords: "name recent frequent order" },
         { category: "launcher", label: "File search", keywords: "plocate files scope" },
-        { category: "calendar", label: "Holidays", keywords: "sweden dates calendar" },
+        { category: "calendar", label: "Time format", keywords: "clock 24h 12h am pm custom time seconds bar" },
+        { category: "calendar", label: "Clock contents", keywords: "clock date day bar show display time" },
+        { category: "calendar", label: "Date format", keywords: "date format clock bar preset custom" },
+        { category: "calendar", label: "Day format", keywords: "day name full short monday mon" },
+        { category: "calendar", label: "Holidays", keywords: "sweden dates calendar highlight" },
+        { category: "calendar", label: "First day of week", keywords: "week start monday sunday calendar" },
+        { category: "calendar", label: "Week numbers", keywords: "iso week number calendar row" },
+        { category: "calendar", label: "Holiday name", keywords: "footer holiday name calendar" },
         { category: "system", label: "Power profile", keywords: "battery balanced performance powerprofilesctl" },
         { category: "advanced", label: "Settings file", keywords: "path export import backup reset defaults json" }
     ]
@@ -41,7 +48,7 @@ ColumnLayout {
         if (key === "displays") return "Displays"
         if (key === "widgets") return "Widgets"
         if (key === "launcher") return "Launcher"
-        if (key === "calendar") return "Calendar"
+        if (key === "calendar") return "Clock / Calendar"
         if (key === "system") return "System"
         if (key === "advanced") return "Advanced"
         return key

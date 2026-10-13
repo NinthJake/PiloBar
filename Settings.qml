@@ -32,6 +32,17 @@ Singleton {
             property string launcherSort: "frequent"
             property bool fileSearch: true
             property string holidays: "se"
+            // Clock (bar widget).
+            property string clockFormat: "24"
+            property string clockCustomFormat: "hh:mm AP"
+            property string clockShow: "time"
+            property string clockDateFormat: "iso"
+            property string clockCustomDate: "yyyy-MM-dd"
+            property string clockDayFormat: "full"
+            // Calendar panel.
+            property string calendarWeekStart: "monday"
+            property bool calendarWeekNumbers: false
+            property bool calendarHolidayFooter: true
             property var layout: BarWidgets.defaultLayout()
             property var usage: ({})
 
@@ -72,6 +83,15 @@ Singleton {
     readonly property alias launcherSort: store.launcherSort
     readonly property alias fileSearch: store.fileSearch
     readonly property alias holidays: store.holidays
+    readonly property alias clockFormat: store.clockFormat
+    readonly property alias clockCustomFormat: store.clockCustomFormat
+    readonly property alias clockShow: store.clockShow
+    readonly property alias clockDateFormat: store.clockDateFormat
+    readonly property alias clockCustomDate: store.clockCustomDate
+    readonly property alias clockDayFormat: store.clockDayFormat
+    readonly property alias calendarWeekStart: store.calendarWeekStart
+    readonly property alias calendarWeekNumbers: store.calendarWeekNumbers
+    readonly property alias calendarHolidayFooter: store.calendarHolidayFooter
     readonly property alias layout: store.layout
     readonly property alias hyprGapsIn: store.hyprGapsIn
     readonly property alias hyprGapsOut: store.hyprGapsOut
@@ -94,6 +114,15 @@ Singleton {
     function setLauncherSort(v) { store.launcherSort = v }
     function setFileSearch(v) { store.fileSearch = v }
     function setHolidays(v) { store.holidays = v }
+    function setClockFormat(v) { store.clockFormat = (v === "12" || v === "custom") ? v : "24" }
+    function setClockCustomFormat(v) { store.clockCustomFormat = v }
+    function setClockShow(v) { store.clockShow = (["time", "datetime", "daytime", "daydatetime"].indexOf(v) !== -1) ? v : "time" }
+    function setClockDateFormat(v) { store.clockDateFormat = v }
+    function setClockCustomDate(v) { store.clockCustomDate = v }
+    function setClockDayFormat(v) { store.clockDayFormat = (v === "short") ? "short" : "full" }
+    function setCalendarWeekStart(v) { store.calendarWeekStart = (v === "sunday") ? "sunday" : "monday" }
+    function setCalendarWeekNumbers(v) { store.calendarWeekNumbers = v }
+    function setCalendarHolidayFooter(v) { store.calendarHolidayFooter = v }
 
     // Hyprland look and feel. Clamp like the bar sliders so a bad import cannot
     // push nonsense into the compositor.
@@ -198,6 +227,15 @@ Singleton {
             store.chrome = "flush"
         if (store.shape !== "rounded" && store.shape !== "s-curve" && store.shape !== "bevel")
             store.shape = "rounded"
+        // Clock / calendar values.
+        if (store.clockFormat !== "24" && store.clockFormat !== "12" && store.clockFormat !== "custom")
+            store.clockFormat = "24"
+        if (["time", "datetime", "daytime", "daydatetime"].indexOf(store.clockShow) === -1)
+            store.clockShow = "time"
+        if (store.clockDayFormat !== "short" && store.clockDayFormat !== "full")
+            store.clockDayFormat = "full"
+        if (store.calendarWeekStart !== "monday" && store.calendarWeekStart !== "sunday")
+            store.calendarWeekStart = "monday"
         migrateLayout()
     }
 
@@ -244,6 +282,15 @@ Singleton {
         store.launcherSort = "frequent"
         store.fileSearch = true
         store.holidays = "se"
+        store.clockFormat = "24"
+        store.clockCustomFormat = "hh:mm AP"
+        store.clockShow = "time"
+        store.clockDateFormat = "iso"
+        store.clockCustomDate = "yyyy-MM-dd"
+        store.clockDayFormat = "full"
+        store.calendarWeekStart = "monday"
+        store.calendarWeekNumbers = false
+        store.calendarHolidayFooter = true
         store.hyprGapsIn = 2
         store.hyprGapsOut = 4
         store.hyprBorderSize = 2

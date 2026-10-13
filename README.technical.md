@@ -47,6 +47,7 @@ pilo/
   BarWidgets.qml       available bar widget registry + default layout (singleton)
   SettingsApp.qml      settings window open/category/search state  (singleton)
   Displays.qml         monitor model + arrange/refresh/scale/identify (singleton)
+  ClockFormat.qml      formats the bar clock from Settings           (singleton)
   SettingsWindow.qml   standalone settings window (FloatingWindow)
   widgets/             bar buttons and small controls
     BarButton, LauncherButton, NetworkButton,
@@ -57,7 +58,7 @@ pilo/
     AppLauncher, CalendarPanel, NetworkPanel, SoundPanel, WindowsMenu
   settings/            settings window categories
     BarCategory, ThemingCategory, DisplaysCategory, WidgetsCategory, LauncherCategory,
-    CalendarCategory, SystemCategory, AdvancedCategory, SettingsSearch,
+    ClockCalendarCategory, SystemCategory, AdvancedCategory, SettingsSearch,
     CategoryHeading
   DESIGN.md            original design document
   README.md            user-facing overview
@@ -127,6 +128,12 @@ Keys: `chrome`, `shape`, `edge`, `opacity`, `rounding`, `attachEdges`,
 `fileSearch`, `holidays`, `theme`, `hyprGapsIn`, `hyprGapsOut`,
 `hyprBorderSize`, `hyprRounding`, `hyprBlurEnabled`, `hyprBlurSize`, `layout`
 (bar widget arrangement), and `usage` (per-app launch counts/timestamps).
+Clock/calendar keys: `clockFormat` (`24`/`12`/`custom`), `clockCustomFormat`,
+`clockShow` (`time`/`datetime`/`daytime`/`daydatetime`), `clockDateFormat`,
+`clockCustomDate`, `clockDayFormat` (`full`/`short`), `calendarWeekStart`
+(`monday`/`sunday`), `calendarWeekNumbers`, `calendarHolidayFooter`.
+`ClockFormat.qml` turns those into the bar string (and picks second precision
+when a custom pattern contains `s`).
 `resetAll()` restores the defaults;
 `exportTo(path)`/`importFrom(path)` copy the file (import reloads the adapter).
 

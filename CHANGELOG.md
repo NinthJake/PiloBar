@@ -91,9 +91,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Auto-hide.
 - IPC: `toggle monitors` / `toggle displays` opens the settings window on the
   Displays page.
+- **Clock / Calendar settings** — the old Calendar category is now **Clock /
+  Calendar**. The bar clock gains a time format (24-hour, 12-hour AM/PM, or a
+  custom Qt pattern such as `HH:mm:ss`), a choice of contents (clock; date +
+  clock; day + clock; day + date + clock), a date-format picker (presets plus a
+  custom pattern), and a day-name length (full or short). The calendar gains a
+  first-day-of-week choice (Monday/Sunday), ISO week numbers, and a holiday-name
+  footer toggle. `ClockFormat.qml` builds the bar string and switches to
+  second precision when a custom pattern contains `s`.
 
 ### Changed
 
+- The **Calendar** settings category is renamed **Clock / Calendar** (same
+  internal key).
 - Chrome modes are now **Flush**, **Centered**, and **Islands**; the old Pill
   mode was removed. A stored `pill` value migrates to `centered` on load.
 - Settings rows that don't apply (e.g. Hide delay) are now dimmed and disabled

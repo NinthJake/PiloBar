@@ -16,7 +16,7 @@ FloatingWindow {
         { key: "displays", label: "Displays", glyph: Theme.glyphMonitor },
         { key: "widgets", label: "Widgets", glyph: Theme.glyphApps },
         { key: "launcher", label: "Launcher", glyph: Theme.glyphSearch },
-        { key: "calendar", label: "Calendar", glyph: Theme.glyphCalendar },
+        { key: "calendar", label: "Clock / Calendar", glyph: Theme.glyphCalendar },
         { key: "system", label: "System", glyph: Theme.glyphBolt },
         { key: "advanced", label: "Advanced", glyph: Theme.glyphSettings }
     ]
@@ -187,7 +187,7 @@ FloatingWindow {
     Component { id: compDisplays; DisplaysCategory {} }
     Component { id: compWidgets; WidgetsCategory {} }
     Component { id: compLauncher; LauncherCategory {} }
-    Component { id: compCalendar; CalendarCategory {} }
+    Component { id: compCalendar; ClockCalendarCategory {} }
     Component { id: compSystem; SystemCategory {} }
     Component { id: compAdvanced; AdvancedCategory {} }
     Component { id: compSearch; SettingsSearch {} }
