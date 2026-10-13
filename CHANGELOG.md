@@ -45,9 +45,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   **Launcher**, **Calendar**, **System**, and **Advanced**; searching jumps to
   the matching setting. Edits apply to the bar live. Advanced shows the settings
   file location and can export/import a backup or reset everything to defaults.
-- **Displays page** — arrange monitors by dragging the screen cards left or
-  right, and set each monitor's refresh rate and scale. Changes apply live and
-  persist to `~/.config/hypr/monitors.lua`, which `hyprland.lua` loads.
+- **Displays page** — a to-scale canvas lays the monitors out at their real
+  (logical) resolution and drags them in 2D. Edges and corners snap while
+  dragging; dropping a display over others pushes them out of the way so
+  nothing ever overlaps, and the preview keeps a small readability gap. Each
+  monitor has resolution and refresh-rate dropdowns plus scale pill buttons. Changes apply live
+  and persist to `~/.config/hypr/monitors.lua`, which `hyprland.lua` loads.
 - **Identify** — flashes a large number, output name, and resolution on each
   screen (`pilo-identify` layer surface) so a card in the Displays page is
   unambiguous. It hides after 5s or on click.
@@ -109,9 +112,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   panel; `panels/SettingsPanel.qml` was removed.
 - The opacity slider now ranges 50–100% (was 60–100%).
 - The Displays page lays each monitor out as a box in a wrapping, responsive
-  grid (aiming for ~280px boxes) with the refresh-rate and scale dropdowns,
-  instead of a full-width list; the arrangement cards shrink to fit when there
-  are many screens.
+  grid (aiming for ~280px boxes) with the resolution and refresh-rate dropdowns
+  and scale pills, instead of a full-width list. The arrangement canvas scales
+  every display to fit, so it works with many screens.
 
 ### Fixed
 

@@ -3,106 +3,160 @@ import QtQuick.Layouts
 import qs
 import qs.widgets
 
-// Monitor arrangement and settings. Cards are laid out left to right and can be
-// dragged to reorder; each monitor also has refresh rate and scale controls.
-// "Identify" flashes the display's number on the screen itself.
+// Monitor arrangement and settings. The canvas lays displays out to scale at
+// their real (logical) resolution; drag one to move it in 2D. Edges and corners
+// snap to other displays and overlapping is rejected. "Identify" flashes the
+// display's number on the screen itself.
 ColumnLayout {
     id: root
 
-    readonly property real cardH: 86
-    readonly property real cardGap: 8
-    // Shrink the arrangement cards to fit the row, so many screens still show.
-    readonly property real cardW: {
-        const n = Math.max(1, Displays.order.length)
-        const avail = Math.max(120, arrangeArea.width - 24)
-        return Math.max(64, Math.min(150, Math.floor((avail - (n - 1) * cardGap) / n)))
-    }
-    readonly property bool compactCards: cardW < 110
+    // Local arrangement copy, shown while dragging before it is applied.
+    property var preview: ({})
+    property bool dragging: false
+    property string dragName: ""
+    property real dragGrabX: 0
+    property real dragGrabY: 0
+    property real dragStartX: 0
+    property real dragStartY: 0
+    // Transform frozen at drag start so the canvas does not rescale under the
+    // pointer while a display moves.
+    property var frozenView: null
 
-    // Setting-box grid: aim for ~280px boxes and fill each row.
-    readonly property real boxGap: 12
-    readonly property real boxW: {
-        const avail = Math.max(200, boxesFlow.width)
-        const cols = Math.max(1, Math.floor((avail + boxGap) / (280 + boxGap)))
-        return Math.floor((avail - (cols - 1) * boxGap) / cols)
-    }
+    readonly property real previewPad: 24
+    readonly property real previewMaxH: 300
+    readonly property real previewMaxScale: 0.2
+    // Visual gap between displays in the preview (does not affect positions).
+    readonly property real previewGap: 3
 
-    property bool dragActive: false
-    property int dragFromIndex: -1
-    property string dragKey: ""
-    property real dragX: 0
-    property real dragY: 0
-    property int hoverIndex: -1
-
-    property bool pendingActive: false
-    property string pendingKey: ""
-    property int pendingFromIndex: -1
-    property real pendingX: 0
-    property real pendingY: 0
-
-    property bool indicatorVisible: false
-    property real indicatorX: 0
+    readonly property var view: frozenView !== null ? frozenView : liveView
+    readonly property var liveView: computeView()
 
     spacing: 16
 
-    Component.onCompleted: Displays.refresh()
-
-    function beginPending(key, index, x, y) {
-        pendingActive = true
-        pendingKey = key
-        pendingFromIndex = index
-        pendingX = x
-        pendingY = y
+    Component.onCompleted: {
+        Displays.refresh()
+        root.preview = Displays.arrangement
     }
 
-    function maybeStartDrag(x, y) {
-        if (!pendingActive)
-            return
-        if (!dragActive && Math.abs(x - pendingX) + Math.abs(y - pendingY) < 6)
-            return
-        if (!dragActive) {
-            dragActive = true
-            dragKey = pendingKey
-            dragFromIndex = pendingFromIndex
+    Connections {
+        target: Displays
+        function onArrangementChanged() {
+            if (!root.dragging)
+                root.preview = Displays.arrangement
         }
-        updateDrag(x, y)
     }
 
-    function updateDrag(x, y) {
-        dragX = x
-        dragY = y
-
-        const origin = arrangeRow.x
-        let idx = 0
-        for (let i = 0; i < Displays.order.length; i++) {
-            const center = origin + i * (cardW + cardGap) + cardW / 2
-            if (x > center)
-                idx = i + 1
+    function previewRect(name) {
+        const p = root.preview[name]
+        const m = Displays.monitorByName(name)
+        if (!p || !m)
+            return null
+        return {
+            x: p.x,
+            y: p.y,
+            w: m.width / Displays.effectiveScale(name),
+            h: m.height / Displays.effectiveScale(name)
         }
-        hoverIndex = idx
-        indicatorVisible = true
-        indicatorX = origin + idx * (cardW + cardGap) - cardGap / 2 - 1
+    }
+
+    function bounds() {
+        let minX = 0, minY = 0, maxX = 1, maxY = 1, first = true
+        for (const name in root.preview) {
+            const r = root.previewRect(name)
+            if (!r)
+                continue
+            if (first) {
+                minX = r.x
+                minY = r.y
+                maxX = r.x + r.w
+                maxY = r.y + r.h
+                first = false
+            } else {
+                minX = Math.min(minX, r.x)
+                minY = Math.min(minY, r.y)
+                maxX = Math.max(maxX, r.x + r.w)
+                maxY = Math.max(maxY, r.y + r.h)
+            }
+        }
+        return { x: minX, y: minY, w: Math.max(1, maxX - minX), h: Math.max(1, maxY - minY) }
+    }
+
+    function computeView() {
+        const b = bounds()
+        const availW = Math.max(120, canvas.width - previewPad * 2)
+        const scale = Math.min(availW / Math.max(1, b.w), previewMaxH / Math.max(1, b.h), previewMaxScale)
+        return { bx: b.x, by: b.y, scale: scale, w: b.w, h: b.h }
+    }
+
+    // Monitor under a canvas point, or "" if none. Uses the same geometry the
+    // preview draws (including the readability gap).
+    function monitorAt(px, py) {
+        let hit = ""
+        for (let i = 0; i < Displays.monitors.length; i++) {
+            const name = Displays.monitors[i].name
+            const r = root.previewRect(name)
+            if (!r)
+                continue
+            const x = root.previewPad + (r.x - root.view.bx) * root.view.scale + root.previewGap
+            const y = root.previewPad + (r.y - root.view.by) * root.view.scale + root.previewGap
+            const w = Math.max(1, r.w * root.view.scale - root.previewGap * 2)
+            const h = Math.max(1, r.h * root.view.scale - root.previewGap * 2)
+            if (px >= x && px <= x + w && py >= y && py <= y + h)
+                hit = name
+        }
+        return hit
+    }
+
+    function beginDrag(name, cx, cy) {
+        const p = root.preview[name]
+        if (!p)
+            return
+        root.frozenView = root.liveView
+        root.dragName = name
+        root.dragGrabX = cx
+        root.dragGrabY = cy
+        root.dragStartX = p.x
+        root.dragStartY = p.y
+        root.dragging = true
+    }
+
+    function updateDrag(name, cx, cy) {
+        if (!root.dragging || root.dragName !== name || root.frozenView === null)
+            return
+        const scale = root.frozenView.scale
+        const nx = root.dragStartX + (cx - root.dragGrabX) / scale
+        const ny = root.dragStartY + (cy - root.dragGrabY) / scale
+        const tol = 8 / scale
+        const snapped = Displays.snapPosition(name, nx, ny, tol)
+        let next = {}
+        for (const k in root.preview)
+            next[k] = root.preview[k]
+        next[name] = { x: snapped.x, y: snapped.y }
+        root.preview = next
     }
 
     function endDrag() {
-        if (dragActive && dragFromIndex >= 0)
-            Displays.reorder(dragFromIndex, hoverIndex)
-        dragActive = false
-        pendingActive = false
-        indicatorVisible = false
-        hoverIndex = -1
+        if (!root.dragging)
+            return
+        const name = root.dragName
+        root.dragging = false
+        root.frozenView = null
+        root.dragName = ""
+        // Let the other displays move out of the way if they overlap.
+        Displays.applyArrangement(Displays.resolveOverlaps(root.preview, name))
     }
 
     CategoryHeading {
         title: "Displays"
-        subtitle: "Drag a display left or right to set the physical arrangement. Refresh rate and scale apply immediately and are saved to monitors.lua."
+        subtitle: "Drag a display to position it. Edges and corners snap to other displays, and displays never overlap."
     }
 
-    // ── arrangement ─────────────────────────────────────────
+    // ── arrangement canvas ──────────────────────────────────
     Item {
-        id: arrangeArea
+        id: canvas
         Layout.fillWidth: true
-        implicitHeight: cardH + 24
+        implicitHeight: Math.max(140, root.view.h * root.view.scale + root.previewPad * 2)
+        clip: true
 
         Rectangle {
             anchors.fill: parent
@@ -110,123 +164,88 @@ ColumnLayout {
             color: Theme.withAlpha(Theme.line, 0.22)
         }
 
-        Row {
-            id: arrangeRow
-            anchors.centerIn: parent
-            spacing: root.cardGap
+        Repeater {
+            model: Displays.monitors
 
-            Repeater {
-                model: Displays.order
+            delegate: Rectangle {
+                id: monBox
+                required property var modelData
 
-                delegate: Rectangle {
-                    id: card
-                    required property string modelData
-                    required property int index
+                readonly property string name: modelData.name
+                readonly property var rect: root.previewRect(name)
 
-                    readonly property var mon: Displays.monitorByName(modelData)
+                visible: rect !== null
+                x: rect === null ? 0 : root.previewPad + (rect.x - root.view.bx) * root.view.scale + root.previewGap
+                y: rect === null ? 0 : root.previewPad + (rect.y - root.view.by) * root.view.scale + root.previewGap
+                width: rect === null ? 1 : Math.max(1, rect.w * root.view.scale - root.previewGap * 2)
+                height: rect === null ? 1 : Math.max(1, rect.h * root.view.scale - root.previewGap * 2)
+                radius: 6
+                clip: true
+                color: root.dragName === name ? Theme.withAlpha(Theme.teal, 0.28) : Theme.withAlpha(Theme.steel, 0.18)
+                border.width: root.dragName === name ? 2 : 1
+                border.color: root.dragName === name ? Theme.teal : Theme.withAlpha(Theme.steel, 0.5)
 
-                    width: root.cardW
-                    height: root.cardH
-                    radius: 8
-                    color: Theme.withAlpha(Theme.steel, 0.18)
-                    border.width: 1
-                    border.color: Theme.withAlpha(Theme.steel, 0.5)
-                    opacity: root.dragActive && root.dragFromIndex === card.index ? 0.4 : 1
+                Behavior on color {
+                    ColorAnimation { duration: Theme.durFast }
+                }
 
-                    Column {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: card.width - 10
-                        spacing: 2
+                Column {
+                    anchors.centerIn: parent
+                    width: parent.width - 8
+                    spacing: 1
 
-                        Text {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            elide: Text.ElideRight
-                            text: root.compactCards ? String(card.index + 1) : "Display " + (card.index + 1)
-                            font.family: Theme.fontFamily
-                            font.pixelSize: root.compactCards ? Theme.fontSize + 3 : Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.teal
-                        }
-
-                        Text {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            elide: Text.ElideRight
-                            text: card.modelData
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 1
-                            color: Theme.fg
-                        }
-
-                        Text {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            elide: Text.ElideRight
-                            visible: !root.compactCards
-                            text: card.mon ? card.mon.width + "x" + card.mon.height : ""
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 2
-                            color: Theme.muted
-                        }
+                    Text {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideRight
+                        text: "Display " + Displays.idFor(monBox.name)
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSize
+                        font.bold: true
+                        color: Theme.teal
                     }
 
-                    MouseArea {
-                        id: cardDrag
-                        anchors.fill: parent
-                        preventStealing: true
+                    Text {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideRight
+                        text: monBox.name
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSize - 2
+                        color: Theme.fg
+                    }
 
-                        onPressed: (mouse) => {
-                            const p = mapToItem(arrangeArea, mouse.x, mouse.y)
-                            root.beginPending(card.modelData, card.index, p.x, p.y)
-                        }
-                        onPositionChanged: (mouse) => {
-                            if (!pressed)
-                                return
-                            const p = mapToItem(arrangeArea, mouse.x, mouse.y)
-                            root.maybeStartDrag(p.x, p.y)
-                        }
-                        onReleased: root.endDrag()
-                        onCanceled: root.endDrag()
+                    Text {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideRight
+                        visible: parent.width > 130
+                        text: Displays.resolutionKey(monBox.name)
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSize - 2
+                        color: Theme.muted
                     }
                 }
+
             }
         }
 
-        Rectangle {
-            visible: root.indicatorVisible
-            z: 5
-            x: root.indicatorX
-            y: 6
-            width: 2
-            height: arrangeArea.height - 12
-            radius: 1
-            color: Theme.teal
-        }
+        MouseArea {
+            id: canvasDrag
+            anchors.fill: parent
+            preventStealing: true
 
-        Rectangle {
-            visible: root.dragActive
-            z: 6
-            x: Math.round(root.dragX - width / 2)
-            y: Math.round(root.dragY - height / 2)
-            width: proxyText.implicitWidth + 24
-            height: 34
-            radius: 8
-            color: Theme.withAlpha(Theme.teal, 0.92)
-
-            Text {
-                id: proxyText
-                anchors.centerIn: parent
-                text: {
-                    const id = Displays.idFor(root.dragKey)
-                    return id > 0 ? "Display " + id : root.dragKey
-                }
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize
-                font.bold: true
-                color: Theme.bg
+            onPressed: (mouse) => {
+                const name = root.monitorAt(mouse.x, mouse.y)
+                if (name !== "")
+                    root.beginDrag(name, mouse.x, mouse.y)
             }
+            onPositionChanged: (mouse) => {
+                if (root.dragging && pressed)
+                    root.updateDrag(root.dragName, mouse.x, mouse.y)
+            }
+            onReleased: root.endDrag()
+            onCanceled: root.endDrag()
         }
     }
 
@@ -255,7 +274,9 @@ ColumnLayout {
     Flow {
         id: boxesFlow
         Layout.fillWidth: true
-        spacing: root.boxGap
+        spacing: boxGap
+
+        readonly property real boxGap: 12
 
         Repeater {
             model: Displays.order
@@ -267,8 +288,12 @@ ColumnLayout {
 
                 readonly property var mon: Displays.monitorByName(modelData)
 
-                width: root.boxW
-                implicitHeight: 124
+                width: {
+                    const avail = Math.max(200, boxesFlow.width)
+                    const cols = Math.max(1, Math.floor((avail + boxesFlow.boxGap) / (280 + boxesFlow.boxGap)))
+                    return Math.floor((avail - (cols - 1) * boxesFlow.boxGap) / cols)
+                }
+                implicitHeight: 174
                 visible: mon !== null
                 radius: 8
                 color: Theme.withAlpha(Theme.line, 0.3)
@@ -300,12 +325,25 @@ ColumnLayout {
                             font.pixelSize: Theme.fontSize - 1
                             color: Theme.fg
                         }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
 
                         Text {
-                            text: box.mon ? box.mon.width + "x" + box.mon.height : ""
+                            Layout.preferredWidth: 66
+                            text: "Resolution"
                             font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 2
+                            font.pixelSize: Theme.fontSize - 1
                             color: Theme.muted
+                        }
+
+                        Dropdown {
+                            Layout.fillWidth: true
+                            options: box.mon ? Displays.resolutionOptions(box.modelData) : []
+                            value: Displays.resolutionKey(box.modelData)
+                            onSelected: (key) => Displays.setResolution(box.modelData, key)
                         }
                     }
 
@@ -314,7 +352,7 @@ ColumnLayout {
                         spacing: 8
 
                         Text {
-                            Layout.preferredWidth: 52
+                            Layout.preferredWidth: 66
                             text: "Refresh"
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 1
@@ -329,19 +367,18 @@ ColumnLayout {
                         }
                     }
 
-                    RowLayout {
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 8
+                        spacing: 4
 
                         Text {
-                            Layout.preferredWidth: 52
                             text: "Scale"
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 1
                             color: Theme.muted
                         }
 
-                        Dropdown {
+                        Pills {
                             Layout.fillWidth: true
                             options: Displays.scaleOptions
                             value: Displays.scaleKey(box.modelData)

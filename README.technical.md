@@ -52,7 +52,7 @@ pilo/
     BarButton, LauncherButton, NetworkButton,
     SoundButton, SettingsButton, Taskbar, Workspaces, Clock, BarSpacer,
     PanelCard, Segmented, Slider, Toggle, ActionButton,
-    SettingRow, IconButton, TextField, BarShape, Dropdown, Tooltip
+    SettingRow, IconButton, TextField, BarShape, Dropdown, Pills, Tooltip
   panels/              panel contents (no windows of their own)
     AppLauncher, CalendarPanel, NetworkPanel, SoundPanel, WindowsMenu
   settings/            settings window categories
@@ -253,7 +253,12 @@ dispatchers:
   `~/.config/hypr/monitors.lua`. `Displays.qml` (used by the settings app's
   Displays page) rewrites that file and applies changes live with
   `hyprctl keyword monitor`. The written file is treated as generated (see
-  `.gitignore` in the dotfiles repo).
+  `.gitignore` in the dotfiles repo). Positions are logical layout pixels
+  (`physical / scale`); the page's canvas draws each monitor to scale in that
+  space and drags it in 2D, snapping edges/corners while dragging. Overlaps are
+  allowed during the drag and resolved on drop: `resolveOverlaps()` anchors the
+  dropped monitor and pushes the others apart along their axis of least overlap
+  until nothing overlaps.
 - **Look and feel is configured in a separate file too.** `hyprland.lua` loads
   `~/.config/hypr/lookandfeel.lua` with `pcall(require, "lookandfeel")` and
   applies `lf.general`, `lf.decoration`, `lf.animations`, the `lf.animation_list`
