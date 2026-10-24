@@ -26,13 +26,15 @@ technical map and the place to record implementation gotchas.
 - FiraCode Nerd Font (bar text and glyphs).
 - NetworkManager, BlueZ, PipeWire (`wpctl`), `powerprofilesctl`, `plocate`
   (file search). None of these are hard requirements for the bar to start; the
-  matching feature degrades if one is missing.
+  matching feature degrades if one is missing. No external notification daemon
+  (mako, dunst, …) is needed or wanted: Pilo owns
+  `org.freedesktop.Notifications`.
 
 ## File layout
 
 ```
 pilo/
-  shell.qml            ShellRoot: one Bar per screen, IPC, audio node tracker
+  shell.qml            ShellRoot: bars, notifications, IPC, audio node tracker
   Bar.qml              per-screen PanelWindow, sections, and the overlays
   Theme.qml            colours, font, sizes, motion, glyphs        (singleton)
   Themes.qml           colour-scheme registry (palettes)           (singleton)
@@ -43,6 +45,7 @@ pilo/
   Panels.qml           which panel is open, on which screen        (singleton)
   Power.qml            power profile via powerprofilesctl          (singleton)
   Holidays.qml         holiday dates per region                   (singleton)
+  Notifications.qml    notification daemon + per-screen toast windows
   RunningApps.qml      running-window model + focus/close/kill     (singleton)
   BarWidgets.qml       available bar widget registry + default layout (singleton)
   SettingsApp.qml      settings window open/category/search state  (singleton)
@@ -56,6 +59,8 @@ pilo/
     SettingRow, IconButton, TextField, BarShape, Dropdown, Pills, Tooltip
   panels/              panel contents (no windows of their own)
     AppLauncher, CalendarPanel, NetworkPanel, SoundPanel, WindowsMenu
+  notifications/
+    NotificationCard.qml  one themed toast (icon, body image, actions)
   settings/            settings window categories
     BarCategory, ThemingCategory, DisplaysCategory, WidgetsCategory, LauncherCategory,
     ClockCalendarCategory, SystemCategory, AdvancedCategory, SettingsSearch,
@@ -68,8 +73,8 @@ pilo/
 ```
 
 Singletons use `pragma Singleton` and are imported with `qs`. Cross-directory
-imports are `qs`, `qs.widgets`, `qs.panels`. The neighbouring-file implicit
-import covers same-directory types.
+imports are `qs`, `qs.widgets`, `qs.panels`, `qs.notifications`. The
+neighbouring-file implicit import covers same-directory types.
 
 ## Window / overlay model
 
@@ -90,6 +95,12 @@ focus-grab objects. Per screen, `Bar.qml` creates:
    panels work reliably under Hyprland.
 3. **The launcher overlay** — namespace `pilo-launcher`, layer Overlay,
    `exclusiveZone: -1`, keyboard focus Exclusive. Holds the centered launcher.
+
+Pilo also creates one separate, content-sized notification surface per screen
+(namespace `pilo-notifications`). It is not part of the bar/panel overlays: it
+anchors to the bar's edge, sizes itself to the toast stack, and is only visible
+while that screen has toasts. Because it is content-sized, empty space cannot
+intercept clicks.
 
 The anchored launcher is a child of the panel overlay; the centered launcher is
 a child of the launcher overlay. `Panels.launcherAnchored` selects which one is
@@ -117,6 +128,40 @@ Panels size their height to their content (`implicitHeight`), with caps on long
 lists so they scroll instead of growing forever. The bar sets each panel's
 height from that. Widths are fixed. The centered launcher is deliberately fixed
 size.
+
+## Notifications
+
+`Notifications.qml` is instantiated once from `shell.qml` and owns the single
+`NotificationServer`. Keeping the server out of `Bar.qml`/`Variants` matters:
+only one object can own the D-Bus name, and it must survive screen changes.
+`keepOnReload` is on; on a hot reload the server re-emits tracked notifications
+and the new `Notifications.qml` adopts them again.
+
+`onNotification` sets `notification.tracked = true` before doing anything else;
+untracked notifications are discarded when the handler returns. Pilo keeps its
+own newest-first `popups` list of `{ notification, screen }` records (not
+`trackedNotifications.values`) because it needs to latch each toast to the
+focused monitor at arrival. Each record is removed from the list by the
+notification's `closed` signal, whatever closed it (timeout, explicit dismiss,
+an action, or the sender withdrawing it).
+
+Up to four toasts are shown. A fifth expires the oldest. The timeout comes from
+the spec value in **milliseconds** (this is what Quickshell exposes despite the
+type docs saying seconds): `-1` uses the defaults (3.5 s low, 6 s normal), `0`
+and critical urgency never expire. Hovering pauses the timer; leaving restarts
+it. Clicking the card invokes the action with identifier `default` (or dismisses
+if there is none), the close button/right-click dismisses, and action chips call
+`NotificationAction.invoke()` without force-closing resident notifications.
+
+Capabilities advertised match what is rendered: body and actions on, image on,
+markup/hyperlinks/body-images/action-icons/inline-reply/persistence off. Body
+text is `Text.PlainText` so markup never leaks through as tags. Both `appIcon`
+and `image` need resolution: `notify-send -i <name>` sends `image-path`, which
+Quickshell turns into `image://icon/<name>`, and that can be a themed name or an
+absolute path. The card routes both through `Quickshell.iconPath(..., true)` (or
+a file URL) so a missing icon falls back to the bell glyph instead of Qt's
+magenta missing-texture square. An `image` that is not an icon URI is rendered
+as a body image.
 
 ## State and settings
 
@@ -281,9 +326,10 @@ dispatchers:
 - **Super opens this launcher.** `hyprland.lua`'s `menu` variable is
   `qs -c pilo ipc call pilo toggle launcher`.
 - **Layer rules.** `hyprland.lua` blurs `pilo-bar` and sets `no_anim` on
-  `pilo-launcher`, `pilo-popup`, and `pilo-identify`. The `no_anim` is required:
-  the config's `fadeLayers` animation runs at speed 60, which otherwise makes
-  the overlays take ~4 seconds to fade in.
+  `pilo-launcher`, `pilo-popup`, `pilo-identify`, and `pilo-notifications`. The
+  `no_anim` is required: the config's `fadeLayers` animation runs at speed 60,
+  which otherwise makes the overlays take ~4 seconds to fade in. Notification
+  cards fade in themselves in QML.
 
 ## Process model
 
@@ -306,6 +352,7 @@ Prefer native Quickshell services; shell out only where needed.
 | Hyprland theme | `HyprTheme.qml`: rewrites `lookandfeel.lua`; live via `hyprctl eval 'hl.config(…)'` |
 | KDE apps | `KdeTheme.qml`: writes `~/.local/share/color-schemes/Pilo-*.colors`, applies with `plasma-apply-colorscheme` |
 | foot terminal | `FootTheme.qml`: writes `~/.config/foot/colors.ini`, `pkill -USR1 -x foot` |
+| Notifications | Quickshell `NotificationServer` in `Notifications.qml`; no external daemon |
 | Session | `systemctl` / `hyprctl`, as in the old power menu |
 
 ## Known issues / decisions
@@ -333,8 +380,12 @@ Prefer native Quickshell services; shell out only where needed.
 - **`quickshell` state dir.** `Settings.qml` runs `mkdir -p` for the state dir
   at startup; the first launch logs a harmless "File does not exist" read
   warning until a setting is changed.
-- **Do not start a notification server.** Something else owns
-  `org.freedesktop.Notifications`.
+- **Pilo is the notification server.** It owns
+  `org.freedesktop.Notifications`; do not start mako/dunst beside it, and do not
+  instantiate a second `NotificationServer`. The Hyprland autostart no longer
+  starts mako.
+- **Notification history is deliberately out of scope.** There is no bell
+  widget or history panel; toasts disappear when they expire or are dismissed.
 - **The settings window is a normal toplevel.** `SettingsWindow.qml` is a
   `FloatingWindow`, so the compositor decides whether to tile or float it; add a
   Hyprland `float` window rule if it should always float. It is deliberately not
@@ -353,6 +404,9 @@ Prefer native Quickshell services; shell out only where needed.
   `x: bar.panelX(width)` / `y: bar.panelY(height)`, and add the panel name to
   `Panels.qml`. Panels are keyed by `Panels.active`; the opening widget passes
   itself to `Panels.toggle()` for anchoring.
+- Add a notification capability/control: extend `NotificationCard.qml` and the
+  matching `NotificationServer` support flag in `Notifications.qml` together.
+  Do not advertise a capability the card cannot render.
 - Add a settings category: a `ColumnLayout` in `settings/` built from
   `CategoryHeading` and `SettingRow`, wire it into `SettingsWindow.qml`
   (`categories`, `categoryComponent`, a `Component`), and add its settings to

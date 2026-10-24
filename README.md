@@ -3,8 +3,8 @@
 ![Pilo bar chrome: Flush, Centered, Islands](assets/bar.gif)
 
 A desktop status bar for Hyprland. It sits on every monitor and replaces the
-old bar, while notifications, the wallpaper picker, and the clipboard keep
-working as before.
+old bar. Pilo also provides its own notifications; the wallpaper picker and the
+clipboard keep working as before.
 
 ## The bar
 
@@ -62,6 +62,26 @@ on, and hide the holiday-name footer.
 - **Settings** — opens the separate Pilo Settings window (see below), including
   the **Displays** page for arranging and identifying screens.
 
+## Notifications
+
+Pilo is the notification daemon as well as the bar, so no separate notification
+program needs to run. Toasts appear in the top-right corner of the monitor you
+are using (bottom-right if the bar is docked at the bottom). They show the app
+icon, title, body, an attached image when one is sent, and the app's action
+buttons.
+
+- **Click** the toast to run its default action, or close it if it has none.
+- **Right-click** the toast, or click its **×**, to dismiss it.
+- Hovering a toast pauses its timeout.
+- Normal timeouts are respected; short timeouts are given at least 1.5 seconds.
+  Low-priority notifications default to 3.5 seconds, normal ones to 6 seconds.
+- **Critical** notifications stay until you dismiss them.
+- Up to four toasts stack; the oldest expires when a fifth arrives.
+
+Notifications are shown on the monitor that was focused when they arrived, so
+they do not jump between screens while you read them. Pilo keeps no notification
+history.
+
 ## Running apps
 
 Icons for everything you have open, across all workspaces and monitors, grouped
@@ -115,6 +135,8 @@ jumps straight to the setting you pick.
 - The bar appears on every connected screen.
 - If a Left or Right section holds more widgets than fit around the centre, the
   extra widgets are clipped instead of overlapping the workspaces.
+- Notification history is not kept: a toast is gone once it expires or is
+  dismissed.
 - Your preferences and your app usage history are saved between sessions.
 - The layout is meant to feel consistent with the rest of the desktop: it is
   dark, understated, and keyboard-friendly.

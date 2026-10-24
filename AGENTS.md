@@ -31,10 +31,12 @@ ideas. Keep those docs updated with behavior changes.
 - **Panels are plain `PanelWindow` layers, never `PopupWindow`.** Popups +
   `HyprlandFocusGrab` dismissed on first click under Hyprland. Do not
   reintroduce popups for anchored panels.
-- **Do not start a notification server** — something else owns
-  `org.freedesktop.Notifications`.
-- `pilo-bar`/`pilo-launcher`/`pilo-popup`/`pilo-identify` need `no_anim` layer
-  rules; the config's `fadeLayers` otherwise fades overlays in over ~4s.
+- **Pilo owns `org.freedesktop.Notifications`.** `Notifications.qml` creates
+  the single `NotificationServer` from `shell.qml`; never instantiate a second
+  one per screen or per bar. Do not start mako beside it.
+- `pilo-bar`/`pilo-launcher`/`pilo-popup`/`pilo-identify`/`pilo-notifications`
+  need `no_anim` layer rules; the config's `fadeLayers` otherwise fades overlays
+  in over ~4s.
 - Monitor config lives in generated `~/.config/hypr/monitors.lua` (loaded by
   `hyprland.lua`), rewritten by `Displays.qml`; don't hand-edit as source.
 - Hyprland's look and feel lives in generated `~/.config/hypr/lookandfeel.lua`,
@@ -48,8 +50,9 @@ ideas. Keep those docs updated with behavior changes.
 
 ## Architecture
 
-- `shell.qml` — ShellRoot: one `Bar.qml` per screen, IPC, audio `PwObjectTracker`.
-  `SettingsWindow.qml` is a `FloatingWindow` (normal toplevel, not a layer).
+- `shell.qml` — ShellRoot: one `Bar.qml` per screen, IPC, audio `PwObjectTracker`,
+  and one `Notifications.qml` daemon. `SettingsWindow.qml` is a `FloatingWindow`
+  (normal toplevel, not a layer).
 - Singletons (`pragma Singleton`, imported via `qs`): `Theme`, `Themes`,
   `Settings`, `Panels`, `Power`, `Holidays`, `RunningApps`, `BarWidgets`,
   `SettingsApp`, `Displays`, `HyprTheme`, `KdeTheme`, `FootTheme`.
@@ -59,8 +62,9 @@ ideas. Keep those docs updated with behavior changes.
   `~/.config/foot/colors.ini`, included from `foot.ini`, and reloads foot with
   `pkill -USR1 -x foot`.)
 - `widgets/` bar buttons/controls; `panels/` panel contents (no windows);
-  `settings/` settings-window categories. Cross-dir imports: `qs.widgets`,
-  `qs.panels`; same-dir types use the implicit import.
+  `notifications/` toast cards; `settings/` settings-window categories. Cross-dir
+  imports: `qs.widgets`, `qs.panels`, `qs.notifications`; same-dir types use the
+  implicit import.
 - Settings persist at `$XDG_STATE_HOME/quickshell/by-shell/<id>/settings.json`
   (`Settings.qml` = `FileView` + `JsonAdapter`; `onAdapterUpdated:
   writeAdapter()`). `Settings.migrateLayout()` drops removed widget keys, guarded

@@ -16,8 +16,10 @@ it, a persisted `Settings.theme`, and the **Theming** category picker. Hyprland
 shipped: its whole Look and feel block lives in a generated
 `~/.config/hypr/lookandfeel.lua` written by `HyprTheme.qml`, applied live with
 `hyprctl eval`, plus editable gaps/border/rounding/blur. Dolphin/KDE shipped:
-`KdeTheme.qml` generates and applies a KDE colour scheme. **Remaining:** pibble,
-and the Dynamic/Custom schemes. The rest of this entry covers those.
+`KdeTheme.qml` generates and applies a KDE colour scheme; foot shipped too.
+Notifications no longer depend on pibble: `Notifications.qml` is pilo's own
+daemon and follows `Theme`. **Remaining:** pibble's remaining surfaces, and the
+Dynamic/Custom schemes. The rest of this entry covers those.
 
 ### Goal
 
@@ -30,7 +32,8 @@ hardcoded or separate:
   `HyprTheme.qml` from the active theme (done);
 - pibble has its own separate theme picker (`Settings.theme`, presets
   **Amber**, **Frost**, **Moss**, **Rose**, **Custom**, and **Dynamic**
-  (matugen)) affecting only pibble's launcher, notifications, and volume OSD.
+  (matugen)) affecting only pibble's launcher, wallpaper picker, and volume OSD.
+  Pilo's notifications now follow Pilo's theme instead.
 
 The current look is the built-in **default theme** ("Vague"), so nothing should
 change visibly until another scheme is picked. Picking a theme should update the

@@ -9,6 +9,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Native notifications** — pilo now implements
+  `org.freedesktop.Notifications` itself (`Notifications.qml` +
+  `notifications/NotificationCard.qml`), replacing mako. Themed toasts show the
+  app icon, summary, plain-text body, attached images, and action buttons. They
+  latch to the focused monitor, stack newest-first (max four), pause on hover,
+  honour millisecond server timeouts, keep critical notifications until
+  dismissed, and fall back from low/normal urgency to 3.5s/6s. Clicking the card
+  invokes its default action or dismisses it; right-click, the close button, or
+  a normal action dismiss it through the server. Missing themed icons fall back
+  to the bell glyph instead of Qt's magenta placeholder. The Hyprland autostart
+  no longer starts mako, and `mako` is removed from the piloarch package list.
 - **Theming** — a `Themes.qml` registry of colour schemes and a **Theming**
   category in the settings app. Each scheme is previewed as a card (its own
   colours) and picking one repaints the bar live; the choice is persisted as

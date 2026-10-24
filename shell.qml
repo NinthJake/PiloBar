@@ -43,6 +43,10 @@ ShellRoot {
 
     SettingsWindow {}
 
+    // One native notification daemon for the whole shell. It owns
+    // org.freedesktop.Notifications and draws its own toasts.
+    Notifications {}
+
     // Instantiate the compositor, KDE, and terminal theme owners and apply once
     // at start; they re-apply on theme changes via their own Connections.
     Component.onCompleted: {

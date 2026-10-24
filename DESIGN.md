@@ -10,7 +10,7 @@ Inspiration is interaction, not a clone: anchored popups and short motion from D
 - Quickshell 0.3.1. Launch with `qs -c pilo`.
 - Three outputs, each 2560x1440, scale 1. A bar on every screen.
 - Waybar is the current bar (`waybar.service` enabled, 32px top reserve). It goes away.
-- pibble keeps notifications, volume flyout, wallpaper picker, clipboard, and Super+Space.
+- pilo owns notifications and implements the Desktop Notifications daemon itself; pibble keeps the volume flyout, wallpaper picker, clipboard, and Super+Space.
 - Super tap opens the pilo launcher (was wofi). Super+Escape still opens `power-menu.sh`. pibble's Super+Space launcher is left as a second launcher.
 - Tools already present: NetworkManager, BlueZ, PipeWire (`wpctl`), `powerprofilesctl`, `plocate`.
 
@@ -127,6 +127,27 @@ Drops from the sound icon. In order:
 - Volume slider, 0–100, same sink the scroll action uses.
 - Output device list, if more than one sink exists. Click sets the default.
 
+### Notifications
+
+Anchored to the same edge as the bar, below it (or above it when the bar is at
+the bottom). They are one content-sized layer surface per screen, separate from
+the panel overlay, so empty space does not swallow clicks. Cards are the same
+dark, bordered surface as panels, with an urgency rail: teal for normal, muted
+for low, error red for critical.
+
+A card shows the app icon (falling back to a bell glyph), app name, summary,
+plain-text body, an attached image when present, and the notification's action
+buttons. Clicking the card invokes its `default` action or dismisses it;
+right-click or the close button dismisses; action chips invoke their action.
+Hovering pauses the timeout. Up to four stack, newest first; the fifth expires
+the oldest.
+
+Notifications are latched to the focused monitor at arrival so they do not move
+between screens. This is a toast daemon only: there is no notification history
+area, bell widget, or do-not-disturb mode. Critical notifications do not expire.
+Short server timeouts are clamped to 1.5s; no timeout means 3.5s for low and 6s
+for normal urgency.
+
 ### Power profile
 
 A row in bar settings, not the sound panel, and not its own bar icon:
@@ -210,13 +231,15 @@ Native Quickshell services first. Shell out only where the service does not cove
 | Network | `Quickshell.Networking` |
 | Bluetooth | `Quickshell.Bluetooth` |
 | Volume | `Quickshell.Services.Pipewire` (nodes kept live by a `PwObjectTracker`) |
+| Notifications | Quickshell `NotificationServer` in `Notifications.qml`; no external daemon |
 | Power profile | `powerprofilesctl` via `Power.qml` |
 | Holidays | `Holidays.qml` |
 | Monitors | `hyprctl monitors -j` to read, `hyprctl keyword monitor` to apply, and a rewrite of `monitors.lua` to persist |
 | Running apps | `hyprctl clients -j` (rebuilt on Hyprland events); focus/close/kill via `hyprctl dispatch 'hl.dsp…'` |
 | Session | `systemctl` / `hyprctl`, same commands as `power-menu.sh` |
 
-Do not start a notification server. pibble owns `org.freedesktop.Notifications`.
+pilo owns `org.freedesktop.Notifications`. Do not start mako or another
+notification daemon beside it.
 
 An `IpcHandler` exposes `toggle launcher`, `toggle calendar`, `toggle network`, `toggle sound`, `toggle settings`, and `toggle monitors`, targeted at the focused screen. No Hyprland bind is added for these. They exist so a bind can be attached later without rewriting the shell.
 
@@ -231,6 +254,7 @@ An `IpcHandler` exposes `toggle launcher`, `toggle calendar`, `toggle network`, 
   Theme.qml          palette, type, motion
   Settings.qml       persisted settings singleton
   Panels.qml         which panel is open and on which screen
+  Notifications.qml  notification daemon + per-screen toast windows
   Power.qml          power profile via powerprofilesctl
   Holidays.qml       holiday dates per region
   RunningApps.qml    running windows model + focus/close/kill actions
@@ -258,6 +282,8 @@ An `IpcHandler` exposes `toggle launcher`, `toggle calendar`, `toggle network`, 
     SettingsPanel.qml
     MonitorsPanel.qml
     WindowsMenu.qml
+  notifications/
+    NotificationCard.qml
 ```
 
 Singletons use `pragma Singleton`. Imports are `qs.*` module imports, not `root:` imports.
@@ -268,7 +294,7 @@ In `hyprland.lua`:
 
 1. Replace `systemctl --user start waybar.service` with `qs -c pilo -n` (`-n` exits a duplicate on reload).
 2. Layer rule for `^pilo-bar$`: blur on, `ignore_alpha` 0.2, `no_anim` true. Same treatment as `blur-waybar`.
-3. Layer rules for `^pilo-launcher$` and `^pilo-popup$`: `no_anim` true, no blur. The compositor's `fadeLayers` animation runs at speed 60, which made the full-screen overlays take ~4s to fade in; `no_anim` shows them instantly. Neither gets blur: both are full-screen, so blurring them would frost the whole desktop.
+3. Layer rules for `^pilo-launcher$` and `^pilo-popup$`: `no_anim` true, no blur. The compositor's `fadeLayers` animation runs at speed 60, which made the full-screen overlays take ~4s to fade in; `no_anim` shows them instantly. Neither gets blur: both are full-screen, so blurring them would frost the whole desktop. `^pilo-notifications$` is blurred and `no_anim`; its cards fade in themselves.
 4. Point the Super-tap launcher at this shell: `menu = "qs -c pilo ipc call pilo toggle launcher"` (was `wofi --show drun`). The `SUPER + SUPER_L` release bind is unchanged.
 5. Monitor setup moved out of `hyprland.lua` into `monitors.lua`, loaded with `for _, m in ipairs(require("monitors")) do hl.monitor(m) end`. The Monitors widget rewrites that file, so fedup should treat it as generated (or gitignore it).
 
@@ -285,7 +311,7 @@ Do not edit pibble autostart, wallpaper, or cliphist. Other Super binds are left
 ## Out of scope
 
 - Lock screen
-- Notification daemon or history
+- Notification history, bell widget, or do-not-disturb mode
 - System tray
 - Media player widget
 - Bluetooth pairing wizard
@@ -307,5 +333,6 @@ Do not edit pibble autostart, wallpaper, or cliphist. Other Super binds are left
 - Monitor icon opens a panel that arranges outputs left/right, sets refresh rate and scale, applies live, and persists to `monitors.lua`.
 - Running apps show as icons across all workspaces and monitors; right-click (or the `+N` chip) opens a menu that can focus, close, or force-kill each window, plus run the app's Desktop Entry actions (jump list).
 - Power profile is a row in bar settings, set through `powerprofilesctl`.
+- Notifications arrive as themed toasts on the focused monitor, with app icons, bodies, images, action buttons, and timeouts; critical notifications stay until dismissed. No mako.
 - Gear switches chrome among Flush, Centered, and Islands, toggles auto-hide, adjusts the gap, and the choices survive a restart.
 - Opening any panel closes whichever panel was already open.
