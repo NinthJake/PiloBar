@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Disable displays from Settings** — each display card has an **Enabled**
+  switch. Disabling writes `disabled = true` through `hl.monitor`/`hyprctl eval`,
+  hides that output from the arrangement canvas, keeps its card so it can be
+  re-enabled, and persists the disabled state in `monitors.lua`. Re-enabling
+  restores the stored mode, position, and scale; the last active display cannot
+  be disabled. Reset re-enables all displays.
 - **Distro-neutral networking** — a new `Network.qml` singleton sits between
   the network UI and the system stack. NetworkManager keeps using
   `Quickshell.Networking`; iwd gets Wi-Fi list/connect/disconnect/toggle/scan
@@ -157,6 +163,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Display numbers no longer follow the left-to-right arrangement. `Display 1`,
+  `Display 2`, etc. are now tied to the output name via a stable sort, so
+  dragging a monitor never renumbers the others and the number shown by
+  **Identify** always matches the same settings card.
+- Dragging a display between two others in **Settings → Displays** no longer
+  scatters or throws monitors into another row. The drop resolver now keeps the
+  dragged display fixed, follows the drag axis (so a full horizontal overlap no
+  longer picks the shorter vertical axis), and shifts each side as a group only
+  by the overlap needed. Inserting a display between touching monitors now
+  slots it in instead of producing a large vertical or cascading displacement.
 - Changing the bar edge (Settings -> Bar -> Edge) no longer leaves the bar
   stuck at full opacity until a restart. Re-anchoring a live layer surface on
   Hyprland leaves it without a fresh configure, so it stops repainting; the bar

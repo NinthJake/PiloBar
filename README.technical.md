@@ -127,8 +127,10 @@ Each `Bar.qml` also creates an **identify overlay** — namespace
 `pilo-identify`, layer Overlay, `exclusiveZone: -1`. It is visible while
 `Displays.identifyActive` is true and shows the display's number, name, and
 resolution centered on that screen. It auto-hides after 5s (`Displays`' timer) or
-on click. Which number a screen gets comes from `Displays.idFor()`, the same
-left-to-right order shown in the settings list.
+on click. Which number a screen gets comes from `Displays.idFor()`, which uses
+`stableOrder` (output names sorted alphabetically). The number therefore stays
+attached to the same monitor when the arrangement changes; the settings cards
+use the same stable order instead of re-sorting by physical position.
 
 Panels size their height to their content (`implicitHeight`), with caps on long
 lists so they scroll instead of growing forever. The bar sets each panel's
@@ -363,9 +365,23 @@ dispatchers:
   `.gitignore` in the dotfiles repo). Positions are logical layout pixels
   (`physical / scale`); the page's canvas draws each monitor to scale in that
   space and drags it in 2D, snapping edges/corners while dragging. Overlaps are
-  allowed during the drag and resolved on drop: `resolveOverlaps()` anchors the
-  dropped monitor and pushes the others apart along their axis of least overlap
-  until nothing overlaps.
+  allowed during the drag and resolved on drop: `resolveOverlaps()` keeps the
+  dropped monitor fixed, chooses the drag axis (horizontal drags stay
+  horizontal even on a full overlap), and shifts the whole group on each side
+  of it only as far as needed. This preserves the arrangement within each side
+  and makes inserting a display between two others behave like a slot rather
+  than scattering monitors.
+
+  `Displays.qml` reads `hyprctl monitors all -j` so disabled outputs remain in
+  the model. The per-display **Enabled** toggle calls
+  `hl.monitor({ output = ..., disabled = true/false })` through `hyprctl eval`
+  (legacy `keyword monitor …,disable` does not work with the Lua config).
+  Disabled outputs are hidden from the arrangement canvas but keep their card,
+  position, mode, and scale; the generated `monitors.lua` entry gets
+  `disabled = true`. Re-enabling restores the stored mode/position/scale.
+  `activeMonitorCount`/`canSetEnabled()` prevent disabling the last active
+  display. Reset uses `hyprctl eval` so it can re-enable outputs as well as
+  restore preferred modes.
 - **Look and feel is configured in a separate file too.** `hyprland.lua` loads
   `~/.config/hypr/lookandfeel.lua` with `pcall(require, "lookandfeel")` and
   applies `lf.general`, `lf.decoration`, `lf.animations`, the `lf.animation_list`
@@ -403,7 +419,7 @@ Prefer native Quickshell services; shell out only where needed.
 | Power profile | `powerprofilesctl` via `Power.qml` |
 | Holidays | `Holidays.qml` |
 | Running apps | `hyprctl clients -j`; actions via `hyprctl dispatch 'hl.dsp…'` |
-| Monitors | `Displays.qml`: `hyprctl monitors -j` / `hyprctl keyword monitor` |
+| Monitors | `Displays.qml`: `hyprctl monitors all -j`; `hyprctl keyword monitor` for active layout, `hyprctl eval` for enable/disable/reset |
 | Hyprland theme | `HyprTheme.qml`: rewrites `lookandfeel.lua`; live via `hyprctl eval 'hl.config(…)'` |
 | KDE apps | `KdeTheme.qml`: writes `~/.local/share/color-schemes/Pilo-*.colors`, applies with `plasma-apply-colorscheme` |
 | foot terminal | `FootTheme.qml`: writes `~/.config/foot/colors.ini`, `pkill -USR1 -x foot` |

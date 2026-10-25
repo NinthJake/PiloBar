@@ -49,7 +49,7 @@ ColumnLayout {
     function previewRect(name) {
         const p = root.preview[name]
         const m = Displays.monitorByName(name)
-        if (!p || !m)
+        if (!p || !m || m.disabled)
             return null
         return {
             x: p.x,
@@ -139,16 +139,23 @@ ColumnLayout {
         if (!root.dragging)
             return
         const name = root.dragName
+        const dropped = root.preview[name]
+        const dx = dropped ? dropped.x - root.dragStartX : 0
+        const dy = dropped ? dropped.y - root.dragStartY : 0
+        const axis = Math.abs(dx) >= Math.abs(dy) ? "x" : "y"
+        const delta = axis === "x" ? dx : dy
         root.dragging = false
         root.frozenView = null
         root.dragName = ""
-        // Let the other displays move out of the way if they overlap.
-        Displays.applyArrangement(Displays.resolveOverlaps(root.preview, name))
+        // Let the other displays move out of the way if they overlap. Keep a
+        // horizontal drag horizontal (and a vertical drag vertical) even when
+        // the dropped display fully covers another one.
+        Displays.applyArrangement(Displays.resolveOverlaps(root.preview, name, axis, delta))
     }
 
     CategoryHeading {
         title: "Displays"
-        subtitle: "Drag a display to position it. Edges and corners snap to other displays, and displays never overlap."
+        subtitle: "Drag a display to position it; edges snap and dropped displays slot in. Use the switch on a card to disable an output."
     }
 
     // ── arrangement canvas ──────────────────────────────────
@@ -279,7 +286,7 @@ ColumnLayout {
         readonly property real boxGap: 12
 
         Repeater {
-            model: Displays.order
+            model: Displays.stableOrder
 
             delegate: Rectangle {
                 id: box
@@ -295,6 +302,7 @@ ColumnLayout {
                 }
                 implicitHeight: 174
                 visible: mon !== null
+                opacity: mon && mon.disabled ? 0.65 : 1
                 radius: 8
                 color: Theme.withAlpha(Theme.line, 0.3)
                 border.width: 1
@@ -310,7 +318,7 @@ ColumnLayout {
                         spacing: 8
 
                         Text {
-                            text: "Display " + (box.index + 1)
+                            text: "Display " + Displays.idFor(box.modelData)
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 1
                             font.bold: true
@@ -324,6 +332,19 @@ ColumnLayout {
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 1
                             color: Theme.fg
+                        }
+
+                        Text {
+                            text: "Enabled"
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSize - 2
+                            color: Theme.muted
+                        }
+
+                        Toggle {
+                            checked: box.mon ? !box.mon.disabled : false
+                            enabled: box.mon ? Displays.canSetEnabled(box.modelData) : false
+                            onToggled: (value) => Displays.setEnabled(box.modelData, value)
                         }
                     }
 

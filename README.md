@@ -114,11 +114,16 @@ category sidebar and search. Everything applies instantly and is saved.
   bottom), *Opacity*, *Auto-hide* (with a hide delay), *Over windows* (float the
   bar over windows without reserving space), and *Workspaces* (all ten, or only
   occupied).
-- **Displays** — drag the screen cards left or right to set how your monitors
-  are arranged, and set each screen's *refresh rate* and *scale*. **Identify**
-  flashes a big number on each screen so you can tell which one is which;
-  *Reset* restores the recommended settings. Changes apply immediately and are
-  saved to `monitors.lua`.
+- **Displays** — drag the screen cards to arrange your monitors. Edges snap and
+  a display dropped between two others slots into place; only the monitors on
+  each side move as far as needed, so edge-to-edge layouts stay intact. Each
+  screen keeps its **Display N** number when moved: the number follows the
+  output, not its current left-to-right position, so the number shown by
+  **Identify** always matches the same settings card. Use the **Enabled**
+  switch on a card to turn an output off or back on; at least one display always
+  stays enabled. Set each screen's *refresh rate* and *scale* here too.
+  *Reset* re-enables every display and restores the recommended settings.
+  Changes apply immediately and are saved to `monitors.lua`.
 - **Widgets** — choose what sits in the **Left**, **Center**, and **Right**
   sections and in what order. Drag a widget from the **Available widgets**
   palette at the bottom into a column to add it, drag rows to reorder or move

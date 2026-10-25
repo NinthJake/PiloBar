@@ -25,7 +25,7 @@ ColumnLayout {
         { category: "theming", label: "Window rounding", keywords: "hyprland rounding corner radius" },
         { category: "theming", label: "Blur", keywords: "hyprland blur frosted translucent" },
         { category: "widgets", label: "Bar layout", keywords: "widgets arrange order move sections left center right" },
-        { category: "displays", label: "Monitor arrangement", keywords: "displays monitors position left right drag identify order" },
+        { category: "displays", label: "Monitor arrangement", keywords: "displays monitors position left right drag identify order disable enable off" },
         { category: "displays", label: "Identify displays", keywords: "number id screen label which monitor" },
         { category: "displays", label: "Refresh rate and scale", keywords: "hz resolution monitor reset" },
         { category: "launcher", label: "Launcher sort", keywords: "name recent frequent order" },

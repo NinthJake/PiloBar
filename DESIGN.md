@@ -196,10 +196,13 @@ No accent picker, no font picker, no plugin list. The palette stays fixed.
 
 ### Monitors
 
-Drops from the monitor icon. One card per output, ordered left to right: name,
-resolution, current refresh, move-left / move-right arrows, a refresh chooser
-(the refresh rates available at the current resolution) and a scale chooser
-(Auto, 1x … 2x). A Reset action sets every output to preferred / auto / auto.
+One card per output in stable output-name order (the **Display N** number
+follows the output, not its left-to-right position): name, an **Enabled**
+switch, resolution, current refresh, a refresh chooser (the refresh rates
+available at the current resolution) and a scale chooser (Auto, 1x … 2x).
+Disabling writes `disabled = true` and keeps the card so it can be re-enabled;
+the last active output cannot be disabled. A Reset action re-enables every
+output and sets preferred / auto / auto.
 
 Any change applies live with `hyprctl keyword monitor` and rewrites
 `~/.config/hypr/monitors.lua`, which `hyprland.lua` loads. The layout origin is
@@ -234,7 +237,7 @@ Native Quickshell services first. Shell out only where the service does not cove
 | Notifications | Quickshell `NotificationServer` in `Notifications.qml`; no external daemon |
 | Power profile | `powerprofilesctl` via `Power.qml` |
 | Holidays | `Holidays.qml` |
-| Monitors | `hyprctl monitors -j` to read, `hyprctl keyword monitor` to apply, and a rewrite of `monitors.lua` to persist |
+| Monitors | `hyprctl monitors all -j` to read, `hyprctl keyword monitor` for active layout, `hyprctl eval` for enable/disable/reset, and a rewrite of `monitors.lua` to persist |
 | Running apps | `hyprctl clients -j` (rebuilt on Hyprland events); focus/close/kill via `hyprctl dispatch 'hl.dsp…'` |
 | Session | `systemctl` / `hyprctl`, same commands as `power-menu.sh` |
 
