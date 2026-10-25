@@ -1,8 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Bluetooth
-import Quickshell.Networking
 import qs
 import qs.widgets
 
@@ -11,67 +9,41 @@ PanelCard {
 
     implicitHeight: content.implicitHeight + 28
 
-    property string pskTarget: ""
+    property var pskNetwork: null
     property string psk: ""
 
-    readonly property var wifi: {
-        const devs = Networking.devices.values
-        for (let i = 0; i < devs.length; i++) {
-            if (devs[i].type === DeviceType.Wifi)
-                return devs[i]
+    readonly property var networks: Network.networks
+
+    readonly property var pairedDevices: BluetoothManager.devices
+
+    readonly property string currentNetwork: Network.statusText
+
+    onVisibleChanged: {
+        if (!visible) {
+            root.pskNetwork = null
+            root.psk = ""
         }
-        return null
-    }
-
-    readonly property var networks: wifi ? wifi.networks.values : []
-
-    readonly property var adapter: Bluetooth.defaultAdapter
-
-    readonly property var pairedDevices: {
-        if (!adapter)
-            return []
-        let out = []
-        const devs = adapter.devices.values
-        for (let i = 0; i < devs.length; i++) {
-            if (devs[i].paired || devs[i].bonded)
-                out.push(devs[i])
-        }
-        return out
-    }
-
-    readonly property string currentNetwork: {
-        if (wifi && wifi.connected)
-            return wifi.name && wifi.name.length > 0 ? wifi.name : "Connected"
-        return "Disconnected"
     }
 
     function signalText(s) {
-        const v = s <= 1 ? s * 100 : s
-        return Math.round(v) + "%"
+        return Math.round(s) + "%"
     }
 
     function pickNetwork(net) {
         if (net.connected) {
-            net.disconnect()
-        } else if (net.known) {
-            net.connect()
-        } else if (net.security === WifiSecurityType.Open) {
-            net.connect()
+            Network.disconnectNetwork(net)
+        } else if (net.known || !net.secured) {
+            Network.connectNetwork(net, "")
         } else {
-            root.pskTarget = net.name
+            root.pskNetwork = net
             root.psk = ""
         }
     }
 
     function submitPsk() {
-        const nets = root.networks
-        for (let i = 0; i < nets.length; i++) {
-            if (nets[i].name === root.pskTarget) {
-                nets[i].connectWithPsk(root.psk)
-                break
-            }
-        }
-        root.pskTarget = ""
+        if (root.pskNetwork)
+            Network.connectNetwork(root.pskNetwork, root.psk)
+        root.pskNetwork = null
         root.psk = ""
     }
 
@@ -94,6 +66,14 @@ PanelCard {
                 color: Theme.fg
             }
 
+            Text {
+                visible: !Network.networkManager
+                text: Network.backendName
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSize - 3
+                color: Theme.muted
+            }
+
             Item { Layout.fillWidth: true }
 
             Text {
@@ -106,8 +86,9 @@ PanelCard {
             }
 
             Toggle {
-                checked: Networking.wifiEnabled
-                onToggled: (v) => Networking.wifiEnabled = v
+                checked: Network.wifiEnabled
+                enabled: Network.wifiToggleable
+                onToggled: (v) => Network.setWifiEnabled(v)
             }
         }
 
@@ -122,7 +103,6 @@ PanelCard {
             delegate: Rectangle {
                 id: netRow
                 required property var modelData
-                readonly property bool secured: modelData.security !== WifiSecurityType.Open
 
                 width: ListView.view.width
                 height: 32
@@ -145,7 +125,7 @@ PanelCard {
                     anchors.right: parent.right
                     anchors.rightMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
-                    text: (netRow.secured ? "\uf023  " : "") + root.signalText(netRow.modelData.signalStrength)
+                    text: (netRow.modelData.secured ? "\uf023  " : "") + (netRow.modelData.signal > 0 ? root.signalText(netRow.modelData.signal) : "")
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSize - 2
                     color: netRow.modelData.connected ? Theme.teal : Theme.muted
@@ -162,11 +142,11 @@ PanelCard {
 
         RowLayout {
             Layout.fillWidth: true
-            visible: root.pskTarget.length > 0
+            visible: root.pskNetwork !== null
             spacing: 6
 
             Text {
-                text: root.pskTarget
+                text: root.pskNetwork ? root.pskNetwork.name : ""
                 elide: Text.ElideRight
                 Layout.fillWidth: true
                 font.family: Theme.fontFamily
@@ -191,7 +171,7 @@ PanelCard {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSize - 1
                     selectByMouse: true
-                    focus: root.pskTarget.length > 0
+                    focus: root.pskNetwork !== null
                     onTextChanged: root.psk = text
                     onAccepted: root.submitPsk()
                 }
@@ -201,6 +181,30 @@ PanelCard {
                 label: "Connect"
                 onTriggered: root.submitPsk()
             }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            visible: Network.canScan
+            spacing: 6
+
+            Item { Layout.fillWidth: true }
+
+            ActionButton {
+                glyph: Theme.glyphRefresh
+                label: "Scan"
+                onTriggered: Network.scan()
+            }
+        }
+
+        Text {
+            Layout.fillWidth: true
+            visible: text.length > 0
+            text: Network.lastError.length > 0 ? Network.lastError : Network.note
+            wrapMode: Text.WordWrap
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSize - 2
+            color: Network.lastError.length > 0 ? Theme.error : Theme.muted
         }
 
         Rectangle {
@@ -222,22 +226,27 @@ PanelCard {
                 color: Theme.fg
             }
 
+            Text {
+                visible: BluetoothManager.available
+                text: BluetoothManager.backendName
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSize - 3
+                color: Theme.muted
+            }
+
             Item { Layout.fillWidth: true }
 
             Text {
-                text: root.adapter ? (root.adapter.enabled ? "On" : "Off") : "Unavailable"
+                text: BluetoothManager.available ? (BluetoothManager.enabled ? "On" : "Off") : "Unavailable"
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSize - 1
                 color: Theme.muted
             }
 
             Toggle {
-                checked: root.adapter ? root.adapter.enabled : false
-                enabled: root.adapter !== null
-                onToggled: (v) => {
-                    if (root.adapter)
-                        root.adapter.enabled = v
-                }
+                checked: BluetoothManager.enabled
+                enabled: BluetoothManager.available
+                onToggled: (v) => BluetoothManager.setEnabled(v)
             }
         }
 
@@ -263,7 +272,7 @@ PanelCard {
                     anchors.leftMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - 90
-                    text: btRow.modelData.name.length > 0 ? btRow.modelData.name : btRow.modelData.deviceName
+                    text: btRow.modelData.name.length > 0 ? btRow.modelData.name : btRow.modelData.address
                     elide: Text.ElideRight
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSize - 1
@@ -284,14 +293,19 @@ PanelCard {
                     id: btMouse
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: {
-                        if (btRow.modelData.connected)
-                            btRow.modelData.disconnect()
-                        else
-                            btRow.modelData.connect()
-                    }
+                    onClicked: BluetoothManager.toggleDevice(btRow.modelData)
                 }
             }
+        }
+
+        Text {
+            Layout.fillWidth: true
+            visible: BluetoothManager.lastError.length > 0
+            text: BluetoothManager.lastError
+            wrapMode: Text.WordWrap
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSize - 2
+            color: Theme.error
         }
     }
 }

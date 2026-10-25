@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Services.Pipewire
 
 ShellRoot {
     id: root
@@ -53,23 +52,6 @@ ShellRoot {
         HyprTheme.apply()
         KdeTheme.apply()
         FootTheme.apply()
-    }
-
-    // Bind the audio nodes we display so their volume/mute properties stay live.
-    PwObjectTracker {
-        objects: {
-            let out = []
-            const sink = Pipewire.defaultAudioSink
-            if (sink)
-                out.push(sink)
-            const nodes = Pipewire.nodes.values
-            for (let i = 0; i < nodes.length; i++) {
-                const n = nodes[i]
-                if (n.isSink && !n.isStream && n.audio)
-                    out.push(n)
-            }
-            return out
-        }
     }
 
     IpcHandler {

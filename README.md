@@ -57,8 +57,13 @@ on, and hide the holiday-name footer.
 ## Control panels
 
 - **Network & Bluetooth** — toggle Wi-Fi, pick a network, connect to a new one,
-  and connect or disconnect paired Bluetooth devices.
-- **Sound** — adjust volume, mute, and choose the output device.
+  and connect or disconnect paired Bluetooth devices. Networking works through
+  NetworkManager, iwd (`iwctl`), ConnMan (`connmanctl`), or wpa_supplicant
+  (`wpa_cli`); other stacks still show accurate read-only status instead of
+  reporting a false disconnect. Bluetooth uses Quickshell/BlueZ when available
+  and falls back to `bluetoothctl`.
+- **Sound** — adjust volume, mute, and choose the output device. PipeWire,
+  PulseAudio (`pactl`), and plain ALSA (`amixer`) are supported.
 - **Settings** — opens the separate Pilo Settings window (see below), including
   the **Displays** page for arranging and identifying screens.
 
@@ -133,6 +138,13 @@ jumps straight to the setting you pick.
 ## Good to know
 
 - The bar appears on every connected screen.
+- The network widget does not require a particular distribution or network
+  manager. NetworkManager, iwd, ConnMan, and wpa_supplicant get controls; other
+  setups still get accurate connected/disconnected and interface state from the
+  kernel.
+- Sound does not require PipeWire. PulseAudio and plain ALSA are used
+  automatically when their clients are present.
+- Bluetooth falls back to `bluetoothctl` if Quickshell cannot attach to BlueZ.
 - If a Left or Right section holds more widgets than fit around the centre, the
   extra widgets are clipped instead of overlapping the workspaces.
 - Notification history is not kept: a toast is gone once it expires or is

@@ -228,9 +228,9 @@ Native Quickshell services first. Shell out only where the service does not cove
 | Clock | `SystemClock` |
 | Apps | `DesktopEntries` |
 | Files | `plocate` via `Process` |
-| Network | `Quickshell.Networking` |
-| Bluetooth | `Quickshell.Bluetooth` |
-| Volume | `Quickshell.Services.Pipewire` (nodes kept live by a `PwObjectTracker`) |
+| Network | `Network.qml`: NetworkManager native; iwd/ConnMan/wpa_supplicant CLIs; kernel route/link fallback |
+| Bluetooth | `BluetoothManager.qml`: Quickshell/BlueZ or `bluetoothctl` |
+| Volume | `Audio.qml`: native PipeWire with `PwObjectTracker`, then `pactl`, then `amixer` |
 | Notifications | Quickshell `NotificationServer` in `Notifications.qml`; no external daemon |
 | Power profile | `powerprofilesctl` via `Power.qml` |
 | Holidays | `Holidays.qml` |
@@ -254,6 +254,9 @@ An `IpcHandler` exposes `toggle launcher`, `toggle calendar`, `toggle network`, 
   Theme.qml          palette, type, motion
   Settings.qml       persisted settings singleton
   Panels.qml         which panel is open and on which screen
+  Network.qml        network backend facade singleton
+  BluetoothManager.qml Bluetooth backend facade singleton
+  Audio.qml          audio backend facade + PwObjectTracker
   Notifications.qml  notification daemon + per-screen toast windows
   Power.qml          power profile via powerprofilesctl
   Holidays.qml       holiday dates per region

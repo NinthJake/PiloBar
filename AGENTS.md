@@ -31,6 +31,15 @@ ideas. Keep those docs updated with behavior changes.
 - **Panels are plain `PanelWindow` layers, never `PopupWindow`.** Popups +
   `HyprlandFocusGrab` dismissed on first click under Hyprland. Do not
   reintroduce popups for anchored panels.
+- **Quickshell.Networking only supports NetworkManager.** Never read
+  `Networking.devices` directly from the network widget. Use the `Network`
+  singleton, which picks NetworkManager, iwd (`iwctl`), ConnMan (`connmanctl`),
+  wpa_supplicant (`wpa_cli`), or read-only kernel route/link state. Do not
+  install, start, or stop the system's network manager to satisfy the bar.
+- **Quickshell.Bluetooth and Pipewire are similarly single-backend.** Bluetooth
+  goes through `BluetoothManager.qml` (Quickshell/BlueZ or `bluetoothctl`), and
+  audio through `Audio.qml` (PipeWire, PulseAudio via `pactl`, or ALSA via
+  `amixer`). Do not read those services directly from widgets.
 - **Pilo owns `org.freedesktop.Notifications`.** `Notifications.qml` creates
   the single `NotificationServer` from `shell.qml`; never instantiate a second
   one per screen or per bar. Do not start mako beside it.
@@ -50,12 +59,16 @@ ideas. Keep those docs updated with behavior changes.
 
 ## Architecture
 
-- `shell.qml` — ShellRoot: one `Bar.qml` per screen, IPC, audio `PwObjectTracker`,
-  and one `Notifications.qml` daemon. `SettingsWindow.qml` is a `FloatingWindow`
+- `shell.qml` — ShellRoot: one `Bar.qml` per screen, IPC, and one
+  `Notifications.qml` daemon. `SettingsWindow.qml` is a `FloatingWindow`
   (normal toplevel, not a layer).
 - Singletons (`pragma Singleton`, imported via `qs`): `Theme`, `Themes`,
-  `Settings`, `Panels`, `Power`, `Holidays`, `RunningApps`, `BarWidgets`,
-  `SettingsApp`, `Displays`, `HyprTheme`, `KdeTheme`, `FootTheme`.
+  `Settings`, `Panels`, `Network`, `BluetoothManager`, `Audio`, `Power`,
+  `Holidays`, `RunningApps`, `BarWidgets`, `SettingsApp`, `Displays`,
+  `HyprTheme`, `KdeTheme`, `FootTheme`. `Network` normalizes
+  NetworkManager/iwd/ConnMan/wpa/generic link state, `BluetoothManager` wraps
+  Quickshell/BlueZ with a `bluetoothctl` fallback, and `Audio` wraps
+  PipeWire/PulseAudio/ALSA and owns the `PwObjectTracker`.
   `HyprTheme`/`KdeTheme`/`FootTheme` push the active theme to the compositor, to
   KDE apps, and to the foot terminal; all apply once from `shell.qml` and
   re-apply on `Settings.onThemeChanged`. (`FootTheme` writes

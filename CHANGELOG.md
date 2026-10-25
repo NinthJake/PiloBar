@@ -9,6 +9,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Distro-neutral networking** — a new `Network.qml` singleton sits between
+  the network UI and the system stack. NetworkManager keeps using
+  `Quickshell.Networking`; iwd gets Wi-Fi list/connect/disconnect/toggle/scan
+  through `iwctl`; ConnMan gets status/list/scan/power/known-network control
+  through `connmanctl`; wpa_supplicant gets status/list/scan/connect through
+  `wpa_cli`; anything else gets accurate read-only connected/interface state
+  from `/proc/net/route` and `/sys/class/net` (covering systemd-networkd,
+  dhcpcd, netctl, etc.). The network widget no longer reports a false
+  disconnect on Arch with iwd + systemd-networkd, and no network manager is
+  installed, replaced, or reconfigured. The bar icon turns error-red while
+  disconnected and the panel shows the real SSID, signal, scan control, and
+  backend-specific status.
+- **Bluetooth and audio fallbacks** — `BluetoothManager.qml` prefers
+  Quickshell/BlueZ and falls back to `bluetoothctl` for adapter power and
+  paired-device connect/disconnect. `Audio.qml` prefers native PipeWire, then
+  PulseAudio through `pactl` (including pipewire-pulse), then ALSA through
+  `amixer`; it also owns the `PwObjectTracker` now. The sound panel shows the
+  active backend and both facades keep the existing UI and controls.
 - **Native notifications** — pilo now implements
   `org.freedesktop.Notifications` itself (`Notifications.qml` +
   `notifications/NotificationCard.qml`), replacing mako. Themed toasts show the

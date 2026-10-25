@@ -24,17 +24,20 @@ technical map and the place to record implementation gotchas.
 - Hyprland 0.56+ with the Lua config (`hyprland.lua`).
 - Quickshell 0.3.1.
 - FiraCode Nerd Font (bar text and glyphs).
-- NetworkManager, BlueZ, PipeWire (`wpctl`), `powerprofilesctl`, `plocate`
-  (file search). None of these are hard requirements for the bar to start; the
-  matching feature degrades if one is missing. No external notification daemon
-  (mako, dunst, …) is needed or wanted: Pilo owns
-  `org.freedesktop.Notifications`.
+- NetworkManager, iwd (`iwctl`), ConnMan (`connmanctl`), or wpa_supplicant
+  (`wpa_cli`) for Wi-Fi controls; any other stack gets read-only kernel status.
+- BlueZ (Quickshell native or `bluetoothctl`).
+- PipeWire (native), PulseAudio (`pactl`), or ALSA (`amixer`).
+- `powerprofilesctl`, `plocate` (file search). None of these are hard
+  requirements for the bar to start; the matching feature degrades if one is
+  missing. No external notification daemon (mako, dunst, …) is needed or
+  wanted: Pilo owns `org.freedesktop.Notifications`.
 
 ## File layout
 
 ```
 pilo/
-  shell.qml            ShellRoot: bars, notifications, IPC, audio node tracker
+  shell.qml            ShellRoot: bars, notifications and IPC
   Bar.qml              per-screen PanelWindow, sections, and the overlays
   Theme.qml            colours, font, sizes, motion, glyphs        (singleton)
   Themes.qml           colour-scheme registry (palettes)           (singleton)
@@ -43,6 +46,9 @@ pilo/
   KdeTheme.qml         writes + applies a KDE colour scheme for Dolphin (singleton)
   FootTheme.qml        writes foot colors.ini + SIGUSR1 reloads foot (singleton)
   Panels.qml           which panel is open, on which screen        (singleton)
+  Network.qml          network backend facade                      (singleton)
+  BluetoothManager.qml Bluetooth backend facade                    (singleton)
+  Audio.qml            audio backend facade + PwObjectTracker      (singleton)
   Power.qml            power profile via powerprofilesctl          (singleton)
   Holidays.qml         holiday dates per region                   (singleton)
   Notifications.qml    notification daemon + per-screen toast windows
@@ -162,6 +168,55 @@ absolute path. The card routes both through `Quickshell.iconPath(..., true)` (or
 a file URL) so a missing icon falls back to the bell glyph instead of Qt's
 magenta missing-texture square. An `image` that is not an icon URI is rendered
 as a body image.
+
+## Network backends
+
+Quickshell.Networking only has a NetworkManager backend, so using
+`Networking.devices` directly reports every device as missing on iwd,
+systemd-networkd, dhcpcd, ConnMan, etc. Widgets must go through `Network.qml`:
+
+1. **NetworkManager** — when `Networking.backend` is
+   `NetworkBackendType.NetworkManager`, the singleton uses the native
+   `Networking` devices/networks and their live properties.
+2. **iwd** — if `iwctl` reports an adapter/station, it parses
+   `iwctl adapter list`, `station list/show`, `get-networks rssi-dbms`, and
+   `known-networks list`. Connect/disconnect, radio power, and scanning run
+   through `iwctl`. ANSI colour codes are stripped before parsing; RSSI is
+   centi-dBm (`-2900` = `-29 dBm`).
+3. **ConnMan** — `connmanctl state`, `technologies`, and `services` provide
+   radio state and service lists. Known/open services connect/disconnect and
+   scan through `connmanctl`. ConnMan needs its interactive agent for a new
+   secured passphrase, so Pilo reports that instead of pretending to support it.
+4. **wpa_supplicant** — a control socket found under `/run/wpa_supplicant` or
+   `/var/run/wpa_supplicant` selects this backend. `wpa_cli status`,
+   `list_networks`, and `scan_results` provide state and networks; known
+   profiles use `select_network`, new networks use `add_network`/`set_network`.
+   wpa_supplicant cannot power the radio off/on, so that toggle is disabled.
+5. **Generic** — `/proc/net/route` gives the default-route interface, and
+   `/sys/class/net/*` distinguishes Wi-Fi from wired links. This is read-only
+   but distribution-neutral, so systemd-networkd, dhcpcd, netctl, and anything
+   else still show the right connection state.
+
+The topology/route poll runs every 5s. iwd details refresh every 15s; ConnMan
+and wpa poll with their topology. Opening the panel refreshes and starts a scan
+for the active backend. None of these paths install, start, stop, or reconfigure
+the system's network manager.
+
+## Bluetooth and audio backends
+
+`BluetoothManager.qml` prefers `Quickshell.Bluetooth` and falls back to
+`bluetoothctl show`, `devices Paired`, and `devices Connected` when Quickshell
+has no adapter. Power and connect/disconnect go through the same BlueZ daemon;
+BlueZ is the standard Linux Bluetooth stack, so there is no second daemon to
+choose between.
+
+`Audio.qml` is the only audio consumer of Quickshell services and owns the
+`PwObjectTracker`. It prefers native PipeWire, then PulseAudio via `pactl`
+(including pipewire-pulse), then ALSA via `amixer`. Pulse polling and ALSA
+polling run every 2s only while PipeWire is unavailable. Fallback volume
+changes are debounced 60ms so dragging the slider doesn't spawn a process per
+pixel. Pulse output switching uses `pactl set-default-sink`; ALSA has a single
+Master/PCM/Headphone control and no output list.
 
 ## State and settings
 
@@ -342,9 +397,9 @@ Prefer native Quickshell services; shell out only where needed.
 | Clock | `SystemClock` |
 | Apps | `DesktopEntries` |
 | Files | `plocate` via `Process` |
-| Network | `Quickshell.Networking` |
-| Bluetooth | `Quickshell.Bluetooth` |
-| Volume | `Quickshell.Services.Pipewire` (a `PwObjectTracker` keeps nodes live) |
+| Network | `Network.qml`: NetworkManager native; iwd/ConnMan/wpa_supplicant CLIs; kernel route/link fallback |
+| Bluetooth | `BluetoothManager.qml`: Quickshell/BlueZ, or `bluetoothctl` |
+| Volume | `Audio.qml`: native PipeWire with `PwObjectTracker`, then `pactl`, then `amixer` |
 | Power profile | `powerprofilesctl` via `Power.qml` |
 | Holidays | `Holidays.qml` |
 | Running apps | `hyprctl clients -j`; actions via `hyprctl dispatch 'hl.dsp…'` |
@@ -380,6 +435,14 @@ Prefer native Quickshell services; shell out only where needed.
 - **`quickshell` state dir.** `Settings.qml` runs `mkdir -p` for the state dir
   at startup; the first launch logs a harmless "File does not exist" read
   warning until a setting is changed.
+- **`Quickshell.Networking` is NetworkManager-only.** iwd and other stacks
+  return no devices. Use `Network.qml` for status/actions; do not add a system
+  network-manager dependency just to make the widget work. ConnMan's new
+  passphrase flow and wpa_supplicant's radio power are deliberately limited.
+- **Quickshell Bluetooth/Pipewire are single-backend too.** Use
+  `BluetoothManager.qml` and `Audio.qml`; never bind widgets straight to
+  `Bluetooth.*` or `Pipewire.*`. The fallbacks do not start or replace any
+  daemon.
 - **Pilo is the notification server.** It owns
   `org.freedesktop.Notifications`; do not start mako/dunst beside it, and do not
   instantiate a second `NotificationServer`. The Hyprland autostart no longer

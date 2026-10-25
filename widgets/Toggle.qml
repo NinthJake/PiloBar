@@ -10,6 +10,7 @@ Item {
 
     implicitWidth: 40
     implicitHeight: 22
+    opacity: root.enabled ? 1 : 0.35
 
     Rectangle {
         anchors.fill: parent
@@ -37,6 +38,7 @@ Item {
 
     MouseArea {
         anchors.fill: parent
+        enabled: root.enabled
         onClicked: root.toggled(!root.checked)
     }
 }
