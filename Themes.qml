@@ -25,10 +25,7 @@ Singleton {
             steel: "#6e94b2",
             error: "#d8647e",
             warning: "#f3be7c",
-            plus: "#7fa563",
-            // Hyprland's root background. Other themes use their own `bg`; the
-            // original setup used 0x1a1a1a, so keep it for the default look.
-            hyprBackground: "#1a1a1a"
+            plus: "#7fa563"
         },
         {
             id: "gruvbox",
@@ -41,8 +38,7 @@ Singleton {
             steel: "#83a598",
             error: "#fb4934",
             warning: "#fe8019",
-            plus: "#b8bb26",
-            hyprBackground: "#282828"
+            plus: "#b8bb26"
         },
         {
             id: "frost",
@@ -68,8 +64,7 @@ Singleton {
             steel: "#7fbbb3",
             error: "#e67e80",
             warning: "#dbbc7f",
-            plus: "#83c092",
-            hyprBackground: "#2d353b"
+            plus: "#83c092"
         },
         {
             id: "rose-pine",
@@ -82,8 +77,7 @@ Singleton {
             steel: "#31748f",
             error: "#eb6f92",
             warning: "#f6c177",
-            plus: "#9ccfd8",
-            hyprBackground: "#191724"
+            plus: "#9ccfd8"
         },
         {
             id: "catppuccin",
@@ -96,8 +90,7 @@ Singleton {
             steel: "#cba6f7",
             error: "#f38ba8",
             warning: "#f9e2af",
-            plus: "#a6e3a1",
-            hyprBackground: "#1e1e2e"
+            plus: "#a6e3a1"
         },
         {
             id: "dracula",
@@ -110,8 +103,7 @@ Singleton {
             steel: "#8be9fd",
             error: "#ff5555",
             warning: "#f1fa8c",
-            plus: "#50fa7b",
-            hyprBackground: "#282a36"
+            plus: "#50fa7b"
         },
         {
             id: "material",
@@ -124,8 +116,7 @@ Singleton {
             steel: "#c792ea",
             error: "#f07178",
             warning: "#ffcb6b",
-            plus: "#c3e88d",
-            hyprBackground: "#263238"
+            plus: "#c3e88d"
         },
         {
             id: "nord",
@@ -138,8 +129,7 @@ Singleton {
             steel: "#81a1c1",
             error: "#bf616a",
             warning: "#ebcb8b",
-            plus: "#a3be8c",
-            hyprBackground: "#2e3440"
+            plus: "#a3be8c"
         }
     ]
 

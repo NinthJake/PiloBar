@@ -64,6 +64,7 @@ Singleton {
     readonly property string glyphLayout: "\uf00a"
     readonly property string glyphCalendar: "\uf073"
     readonly property string glyphTheme: "\uf53f"
+    readonly property string glyphOpen: "\uf08e"
     readonly property string glyphNotifications: "\uf0f3"
 
     function withAlpha(c, a) {

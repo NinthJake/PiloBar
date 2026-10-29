@@ -114,6 +114,10 @@ category sidebar and search. Everything applies instantly and is saved.
   bottom), *Opacity*, *Auto-hide* (with a hide delay), *Over windows* (float the
   bar over windows without reserving space), and *Workspaces* (all ten, or only
   occupied).
+- **Theming** — pick a colour scheme for the bar. KDE apps like Dolphin and the
+  foot terminal follow the same palette. **Look and feel** has an **Open
+  HyprMod** button for Hyprland's own settings (gaps, borders, rounding, blur,
+  animations, and compositor colours); Pilo does not duplicate those controls.
 - **Displays** — drag the screen cards to arrange your monitors. Edges snap and
   a display dropped between two others slots into place; only the monitors on
   each side move as far as needed, so edge-to-edge layouts stay intact. Each
@@ -150,6 +154,8 @@ jumps straight to the setting you pick.
 - Sound does not require PipeWire. PulseAudio and plain ALSA are used
   automatically when their clients are present.
 - Bluetooth falls back to `bluetoothctl` if Quickshell cannot attach to BlueZ.
+- Hyprland's look and feel is handled by HyprMod, launched from Theming; Pilo
+  does not overwrite compositor settings.
 - If a Left or Right section holds more widgets than fit around the centre, the
   extra widgets are clipped instead of overlapping the workspaces.
 - Notification history is not kept: a toast is gone once it expires or is

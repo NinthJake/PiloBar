@@ -30,8 +30,10 @@ technical map and the place to record implementation gotchas.
 - PipeWire (native), PulseAudio (`pactl`), or ALSA (`amixer`).
 - `powerprofilesctl`, `plocate` (file search). None of these are hard
   requirements for the bar to start; the matching feature degrades if one is
-  missing. No external notification daemon (mako, dunst, …) is needed or
-  wanted: Pilo owns `org.freedesktop.Notifications`.
+  missing. HyprMod is optional and provides Hyprland's own look-and-feel
+  settings; Theming only links to it. No external notification daemon (mako,
+  dunst, …) is needed or wanted: Pilo owns
+  `org.freedesktop.Notifications`.
 
 ## File layout
 
@@ -42,7 +44,6 @@ pilo/
   Theme.qml            colours, font, sizes, motion, glyphs        (singleton)
   Themes.qml           colour-scheme registry (palettes)           (singleton)
   Settings.qml         persisted settings                         (singleton)
-  HyprTheme.qml        writes Hyprland lookandfeel.lua + applies colours (singleton)
   KdeTheme.qml         writes + applies a KDE colour scheme for Dolphin (singleton)
   FootTheme.qml        writes foot colors.ini + SIGUSR1 reloads foot (singleton)
   Panels.qml           which panel is open, on which screen        (singleton)
@@ -227,9 +228,9 @@ Master/PCM/Headphone control and no output list.
 properties are the settings; `onAdapterUpdated: writeAdapter()` persists them.
 Keys: `chrome`, `shape`, `edge`, `opacity`, `rounding`, `attachEdges`,
 `autoHide`, `autoHideDelay`, `overWindows`, `workspaceMode`, `launcherSort`,
-`fileSearch`, `holidays`, `theme`, `hyprGapsIn`, `hyprGapsOut`,
-`hyprBorderSize`, `hyprRounding`, `hyprBlurEnabled`, `hyprBlurSize`, `layout`
-(bar widget arrangement), and `usage` (per-app launch counts/timestamps).
+`fileSearch`, `holidays`, `theme`, `layout` (bar widget arrangement), and
+`usage` (per-app launch counts/timestamps). Old `hypr*` keys left in existing
+files are ignored.
 Clock/calendar keys: `clockFormat` (`24`/`12`/`custom`), `clockCustomFormat`,
 `clockShow` (`time`/`datetime`/`daytime`/`daydatetime`), `clockDateFormat`,
 `clockCustomDate`, `clockDayFormat` (`full`/`short`), `calendarWeekStart`
@@ -293,7 +294,7 @@ centre.
 ## Theming
 
 `Themes.qml` is the colour-scheme registry: a `presets` list of `{ id, name,
-bg, fg, line, muted, teal, steel, error, warning, plus, hyprBackground? }`.
+bg, fg, line, muted, teal, steel, error, warning, plus }`.
 `Theme.qml` resolves `Themes.find(Settings.theme)` into its `readonly property
 color` tokens, so every widget keeps its token names and repaints when the scheme
 changes. Built-ins are **Vague** (default, the bar's original palette), **Gruvbox**,
@@ -303,25 +304,27 @@ preset as a card previewing its own colours; picking one writes `Settings.theme`
 persisted like every other setting and restored on login. `Settings.migrate()`
 drops an unknown theme id back to the default.
 
-A theme also drives Hyprland, and so do the **Look and feel** controls in the
-same category (inner/outer gaps, border size, window rounding, blur on/off and
-size). `HyprTheme.qml` writes `~/.config/hypr/lookandfeel.lua` (generated,
-gitignored) from those settings plus the active theme's border colours and
-background, and `hyprland.lua` loads it with `require()`. On start and on every
-relevant change it live-applies everything with `hyprctl eval` (see the Hyprland
-section) and rewrites the file for the next login. `shell.qml` calls
-`HyprTheme.apply()` once on start; `HyprTheme` then re-applies through its own
-`Connections` on `Settings` (theme and each look-and-feel value).
+Pilo's theme is deliberately scoped to the bar, notifications, KDE apps, and
+foot. **Hyprland's look and feel is owned by HyprMod**, which writes its own
+`~/.config/hypr/hyprland-gui.lua` and is loaded late by `hyprland.lua`. Pilo does
+not write `lookandfeel.lua`, does not apply compositor colours, and has no
+`hypr*` settings any more. The Theming category's **Look and feel** row probes
+for `hyprmod` on `PATH` (or `~/.local/bin/hyprmod`) and launches it. An existing
+`lookandfeel.lua` is left untouched as a static base loaded earlier.
 
-Finally, a theme drives **KDE apps** (Dolphin): `KdeTheme.qml` writes a scheme to
+A theme drives **KDE apps** (Dolphin): `KdeTheme.qml` writes a scheme to
 `~/.local/share/color-schemes/Pilo-<theme>.colors` and applies it with
 `plasma-apply-colorscheme`, which updates `~/.config/kdeglobals` and notifies the
 session. KDE's role list is much larger than the bar's token set, so `KdeTheme`
 derives window/view/button/selection/tooltip backgrounds and all foreground roles
 from the palette (`shade()` lightens/darkens). `shell.qml` calls
-`KdeTheme.apply()` alongside `HyprTheme.apply()`; `KdeTheme` re-applies on
-`Settings.onThemeChanged`. If `plasma-apply-colorscheme` is missing (no Plasma
-tooling) the generated file is still written but kdeglobals is left alone.
+`KdeTheme.apply()`; `KdeTheme` re-applies on
+`Settings.onThemeChanged`. When `plasma-apply-colorscheme` is missing (no
+`plasma-workspace`, e.g. Arch with only Dolphin) it falls back to
+`scripts/kde-apply-colorscheme.sh`, which writes the same groups into
+`kdeglobals` with `kwriteconfig6`. Either way, KDE apps only read those colours
+when `plasma-integration` provides the KDE platform theme
+(`QT_QPA_PLATFORMTHEME=kde`).
 
 The **foot** terminal follows too: `FootTheme.qml` writes
 `~/.config/foot/colors.ini` (generated, gitignored) with the active theme and
@@ -382,18 +385,18 @@ dispatchers:
   `activeMonitorCount`/`canSetEnabled()` prevent disabling the last active
   display. Reset uses `hyprctl eval` so it can re-enable outputs as well as
   restore preferred modes.
-- **Look and feel is configured in a separate file too.** `hyprland.lua` loads
-  `~/.config/hypr/lookandfeel.lua` with `pcall(require, "lookandfeel")` and
-  applies `lf.general`, `lf.decoration`, `lf.animations`, the `lf.animation_list`
-  loop, and `misc.background_color`. `HyprTheme.qml` regenerates it from the
-  active theme (see Theming). `pcall` matters: on a fresh install the file may
-  not exist before the bar has run once, and a bare `require` error would abort
-  the rest of the config.
-- **`hyprctl keyword` is rejected for these options.** On 0.56
+- **Hyprland look and feel is owned by HyprMod.** `hyprland.lua` loads
+  `~/.config/hypr/hyprland-gui.lua` late, and HyprMod owns the editable
+  compositor settings. Pilo only launches `hyprmod` from Theming. Any existing
+  `~/.config/hypr/lookandfeel.lua` remains a static base loaded earlier; Pilo no
+  longer regenerates it. If that file is deleted on a fresh setup,
+  `hyprland.lua`'s `pcall(require, "lookandfeel")` fallback still applies.
+- **`hyprctl keyword` is rejected for non-legacy options.** On 0.56
   `hyprctl keyword general:col.active_border …` prints "keyword can't work with
-  non-legacy parsers. Use eval." and does nothing. Live-apply with
-  `hyprctl eval 'hl.config({ … })'` instead; `HyprTheme.qml` builds one such eval
-  for the theme colours. `hyprctl keyword monitor` still works (legacy parser).
+  non-legacy parsers. Use eval." and does nothing. Use
+  `hyprctl eval 'hl.config({ … })'` for config changes; `Displays.qml` uses eval
+  for monitor enable/disable/reset. `hyprctl keyword monitor` still works
+  (legacy parser).
 - **Super opens this launcher.** `hyprland.lua`'s `menu` variable is
   `qs -c pilo ipc call pilo toggle launcher`.
 - **Layer rules.** `hyprland.lua` blurs `pilo-bar` and sets `no_anim` on
@@ -420,8 +423,8 @@ Prefer native Quickshell services; shell out only where needed.
 | Holidays | `Holidays.qml` |
 | Running apps | `hyprctl clients -j`; actions via `hyprctl dispatch 'hl.dsp…'` |
 | Monitors | `Displays.qml`: `hyprctl monitors all -j`; `hyprctl keyword monitor` for active layout, `hyprctl eval` for enable/disable/reset |
-| Hyprland theme | `HyprTheme.qml`: rewrites `lookandfeel.lua`; live via `hyprctl eval 'hl.config(…)'` |
-| KDE apps | `KdeTheme.qml`: writes `~/.local/share/color-schemes/Pilo-*.colors`, applies with `plasma-apply-colorscheme` |
+| Hyprland look and feel | HyprMod (`hyprland-gui.lua`); launched from Theming |
+| KDE apps | `KdeTheme.qml`: writes `~/.local/share/color-schemes/Pilo-*.colors`, applies with `plasma-apply-colorscheme` (fallback: `scripts/kde-apply-colorscheme.sh`) |
 | foot terminal | `FootTheme.qml`: writes `~/.config/foot/colors.ini`, `pkill -USR1 -x foot` |
 | Notifications | Quickshell `NotificationServer` in `Notifications.qml`; no external daemon |
 | Session | `systemctl` / `hyprctl`, as in the old power menu |

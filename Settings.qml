@@ -45,14 +45,6 @@ Singleton {
             property bool calendarHolidayFooter: true
             property var layout: BarWidgets.defaultLayout()
             property var usage: ({})
-
-            // Hyprland look and feel (written to lookandfeel.lua by HyprTheme).
-            property int hyprGapsIn: 2
-            property int hyprGapsOut: 4
-            property int hyprBorderSize: 2
-            property int hyprRounding: 2
-            property bool hyprBlurEnabled: true
-            property int hyprBlurSize: 8
         }
     }
 
@@ -93,12 +85,6 @@ Singleton {
     readonly property alias calendarWeekNumbers: store.calendarWeekNumbers
     readonly property alias calendarHolidayFooter: store.calendarHolidayFooter
     readonly property alias layout: store.layout
-    readonly property alias hyprGapsIn: store.hyprGapsIn
-    readonly property alias hyprGapsOut: store.hyprGapsOut
-    readonly property alias hyprBorderSize: store.hyprBorderSize
-    readonly property alias hyprRounding: store.hyprRounding
-    readonly property alias hyprBlurEnabled: store.hyprBlurEnabled
-    readonly property alias hyprBlurSize: store.hyprBlurSize
 
     function setTheme(v) { store.theme = Themes.has(v) ? v : Themes.defaultId }
     function setChrome(v) { store.chrome = v }
@@ -123,15 +109,6 @@ Singleton {
     function setCalendarWeekStart(v) { store.calendarWeekStart = (v === "sunday") ? "sunday" : "monday" }
     function setCalendarWeekNumbers(v) { store.calendarWeekNumbers = v }
     function setCalendarHolidayFooter(v) { store.calendarHolidayFooter = v }
-
-    // Hyprland look and feel. Clamp like the bar sliders so a bad import cannot
-    // push nonsense into the compositor.
-    function setHyprGapsIn(v) { store.hyprGapsIn = Math.max(0, Math.min(30, Math.round(v))) }
-    function setHyprGapsOut(v) { store.hyprGapsOut = Math.max(0, Math.min(50, Math.round(v))) }
-    function setHyprBorderSize(v) { store.hyprBorderSize = Math.max(0, Math.min(10, Math.round(v))) }
-    function setHyprRounding(v) { store.hyprRounding = Math.max(0, Math.min(24, Math.round(v))) }
-    function setHyprBlurEnabled(v) { store.hyprBlurEnabled = v }
-    function setHyprBlurSize(v) { store.hyprBlurSize = Math.max(1, Math.min(20, Math.round(v))) }
 
     function sectionList(section) {
         const l = store.layout
@@ -214,12 +191,6 @@ Singleton {
         // Theme ids come from Themes.qml; a removed scheme falls back to default.
         if (!Themes.has(store.theme))
             store.theme = Themes.defaultId
-        // Clamp imported Hyprland values into the slider ranges.
-        setHyprGapsIn(store.hyprGapsIn)
-        setHyprGapsOut(store.hyprGapsOut)
-        setHyprBorderSize(store.hyprBorderSize)
-        setHyprRounding(store.hyprRounding)
-        setHyprBlurSize(store.hyprBlurSize)
         // "pill" chrome was replaced by "centered".
         if (store.chrome === "pill")
             store.chrome = "centered"
@@ -291,12 +262,6 @@ Singleton {
         store.calendarWeekStart = "monday"
         store.calendarWeekNumbers = false
         store.calendarHolidayFooter = true
-        store.hyprGapsIn = 2
-        store.hyprGapsOut = 4
-        store.hyprBorderSize = 2
-        store.hyprRounding = 2
-        store.hyprBlurEnabled = true
-        store.hyprBlurSize = 8
         store.layout = BarWidgets.defaultLayout()
     }
 

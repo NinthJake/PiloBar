@@ -46,10 +46,10 @@ ShellRoot {
     // org.freedesktop.Notifications and draws its own toasts.
     Notifications {}
 
-    // Instantiate the compositor, KDE, and terminal theme owners and apply once
-    // at start; they re-apply on theme changes via their own Connections.
+    // Instantiate the KDE and terminal theme owners and apply once at start;
+    // they re-apply on theme changes via their own Connections. Hyprland's own
+    // look and feel is owned by HyprMod, not by the bar.
     Component.onCompleted: {
-        HyprTheme.apply()
         KdeTheme.apply()
         FootTheme.apply()
     }

@@ -48,12 +48,15 @@ ideas. Keep those docs updated with behavior changes.
   in over ~4s.
 - Monitor config lives in generated `~/.config/hypr/monitors.lua` (loaded by
   `hyprland.lua`), rewritten by `Displays.qml`; don't hand-edit as source.
-- Hyprland's look and feel lives in generated `~/.config/hypr/lookandfeel.lua`,
-  loaded by `hyprland.lua` with `pcall(require, "lookandfeel")` and written by
-  `HyprTheme.qml` (the pilo Theming category). Both files are gitignored in the
-  fedup repo. **`hyprctl keyword` is rejected for these options on 0.56**
-  ("keyword can't work with non-legacy parsers. Use eval.") — live-apply with
-  `hyprctl eval 'hl.config({ … })'`. (`hyprctl keyword monitor` still works.)
+- **Hyprland look and feel is owned by HyprMod, not Pilo.** HyprMod writes
+  `~/.config/hypr/hyprland-gui.lua`, loaded late by `hyprland.lua`; the Theming
+  category only launches `hyprmod`. Do not reintroduce a Pilo writer for
+  `lookandfeel.lua` or live compositor theme application. Any existing
+  `lookandfeel.lua` is a static base loaded earlier and is no longer generated.
+- **`hyprctl keyword` is rejected for non-legacy options on 0.56**
+  ("keyword can't work with non-legacy parsers. Use eval.") — use
+  `hyprctl eval 'hl.config({ … })'`. `Displays.qml` uses eval for monitor
+  enable/disable/reset; `hyprctl keyword monitor` still works for active layout.
 - Only one panel open at a time; opening widget passes itself to
   `Panels.toggle(name, screen, this)` for anchoring. IPC-opened panels center.
 
@@ -65,15 +68,15 @@ ideas. Keep those docs updated with behavior changes.
 - Singletons (`pragma Singleton`, imported via `qs`): `Theme`, `Themes`,
   `Settings`, `Panels`, `Network`, `BluetoothManager`, `Audio`, `Power`,
   `Holidays`, `RunningApps`, `BarWidgets`, `SettingsApp`, `Displays`,
-  `HyprTheme`, `KdeTheme`, `FootTheme`. `Network` normalizes
+  `KdeTheme`, `FootTheme`. `Network` normalizes
   NetworkManager/iwd/ConnMan/wpa/generic link state, `BluetoothManager` wraps
   Quickshell/BlueZ with a `bluetoothctl` fallback, and `Audio` wraps
   PipeWire/PulseAudio/ALSA and owns the `PwObjectTracker`.
-  `HyprTheme`/`KdeTheme`/`FootTheme` push the active theme to the compositor, to
-  KDE apps, and to the foot terminal; all apply once from `shell.qml` and
-  re-apply on `Settings.onThemeChanged`. (`FootTheme` writes
-  `~/.config/foot/colors.ini`, included from `foot.ini`, and reloads foot with
-  `pkill -USR1 -x foot`.)
+  `KdeTheme`/`FootTheme` push the active theme to KDE apps and the foot
+  terminal; both apply once from `shell.qml` and re-apply on
+  `Settings.onThemeChanged`. Hyprland's look and feel is delegated to HyprMod.
+  (`FootTheme` writes `~/.config/foot/colors.ini`, included from `foot.ini`, and
+  reloads foot with `pkill -USR1 -x foot`.)
 - `widgets/` bar buttons/controls; `panels/` panel contents (no windows);
   `notifications/` toast cards; `settings/` settings-window categories. Cross-dir
   imports: `qs.widgets`, `qs.panels`, `qs.notifications`; same-dir types use the

@@ -1,18 +1,34 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 import qs
 import qs.widgets
 
 // Theme picker. Each card previews a scheme's own colours (not the active
 // theme's), so the whole palette reads before you commit to it. Selecting one
 // writes Settings.theme; Theme.qml re-resolves and the bar repaints live.
+// Hyprland's own settings are deliberately owned by HyprMod; Pilo only offers
+// a launcher for it.
 ColumnLayout {
     id: root
     spacing: 16
 
+    property string hyprmodPath: ""
+    readonly property bool hyprmodAvailable: hyprmodPath.length > 0
+
+    Process {
+        id: hyprmodProbe
+        command: ["sh", "-c", "p=$(command -v hyprmod 2>/dev/null); if [ -n \"$p\" ]; then printf '%s\\n' \"$p\"; elif [ -x \"$HOME/.local/bin/hyprmod\" ]; then printf '%s\\n' \"$HOME/.local/bin/hyprmod\"; fi"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: root.hyprmodPath = text.trim().split("\n")[0]
+        }
+    }
+
     CategoryHeading {
         title: "Theming"
-        subtitle: "The bar's colour scheme. Hyprland's borders, gaps, rounding, and blur follow too (see below), as do KDE apps like Dolphin and the foot terminal."
+        subtitle: "The bar's colour scheme, also used by KDE apps like Dolphin and the foot terminal. Hyprland's own look and feel is managed by HyprMod (below)."
     }
 
     Flow {
@@ -123,120 +139,21 @@ ColumnLayout {
 
     CategoryHeading {
         title: "Look and feel"
-        subtitle: "Hyprland's window gaps, border, rounding, and blur. Applied to the compositor live."
+        subtitle: "Hyprland's gaps, borders, rounding, blur, animations, and compositor colours are managed by HyprMod."
     }
 
     SettingRow {
-        label: "Inner gaps"
-        hint: "Space between tiled windows."
+        available: root.hyprmodAvailable
+        disabledReason: "HyprMod is not installed or not on PATH. Install it from https://github.com/BlueManCZ/hyprmod."
+        label: "Hyprland settings"
+        hint: root.hyprmodAvailable
+            ? "HyprMod writes its own hyprland-gui.lua and applies changes live. Pilo no longer edits Hyprland's look and feel."
+            : "HyprMod is not installed; Hyprland settings are unchanged."
 
-        Slider {
-            Layout.fillWidth: true
-            value: Settings.hyprGapsIn / 30
-            onMoved: (v) => Settings.setHyprGapsIn(v * 30)
-        }
-
-        Text {
-            Layout.preferredWidth: 40
-            horizontalAlignment: Text.AlignRight
-            text: Settings.hyprGapsIn + "px"
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSize - 1
-            color: Theme.fg
-        }
-    }
-
-    SettingRow {
-        label: "Outer gaps"
-        hint: "Space between windows and the screen edge."
-
-        Slider {
-            Layout.fillWidth: true
-            value: Settings.hyprGapsOut / 50
-            onMoved: (v) => Settings.setHyprGapsOut(v * 50)
-        }
-
-        Text {
-            Layout.preferredWidth: 40
-            horizontalAlignment: Text.AlignRight
-            text: Settings.hyprGapsOut + "px"
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSize - 1
-            color: Theme.fg
-        }
-    }
-
-    SettingRow {
-        label: "Border size"
-        hint: "Width of the window border."
-
-        Slider {
-            Layout.fillWidth: true
-            value: Settings.hyprBorderSize / 10
-            onMoved: (v) => Settings.setHyprBorderSize(v * 10)
-        }
-
-        Text {
-            Layout.preferredWidth: 40
-            horizontalAlignment: Text.AlignRight
-            text: Settings.hyprBorderSize + "px"
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSize - 1
-            color: Theme.fg
-        }
-    }
-
-    SettingRow {
-        label: "Window rounding"
-        hint: "Corner radius of windows."
-
-        Slider {
-            Layout.fillWidth: true
-            value: Settings.hyprRounding / 24
-            onMoved: (v) => Settings.setHyprRounding(v * 24)
-        }
-
-        Text {
-            Layout.preferredWidth: 40
-            horizontalAlignment: Text.AlignRight
-            text: Settings.hyprRounding + "px"
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSize - 1
-            color: Theme.fg
-        }
-    }
-
-    SettingRow {
-        label: "Blur"
-        hint: "Frost translucent windows."
-
-        Item { Layout.fillWidth: true }
-
-        Toggle {
-            checked: Settings.hyprBlurEnabled
-            onToggled: (value) => Settings.setHyprBlurEnabled(value)
-        }
-    }
-
-    SettingRow {
-        available: Settings.hyprBlurEnabled
-        disabledReason: "Turn on Blur to set its size."
-        label: "Blur size"
-        hint: "Higher is softer and costs more GPU."
-
-        Slider {
-            Layout.fillWidth: true
-            value: (Settings.hyprBlurSize - 1) / 19
-            onMoved: (v) => Settings.setHyprBlurSize(1 + v * 19)
-        }
-
-        Text {
-            Layout.preferredWidth: 40
-            horizontalAlignment: Text.AlignRight
-            text: Settings.hyprBlurSize + "px"
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSize - 1
-            color: Theme.fg
+        ActionButton {
+            glyph: Theme.glyphOpen
+            label: "Open HyprMod"
+            onTriggered: Quickshell.execDetached([root.hyprmodPath])
         }
     }
 }

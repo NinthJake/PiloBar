@@ -9,7 +9,10 @@ import QtQuick
 // from ~/.config/kdeglobals, so this generates a KDE colour scheme under
 // ~/.local/share/color-schemes/ and applies it with plasma-apply-colorscheme,
 // which copies the colours into kdeglobals, updates the scheme hash, and notifies
-// the session so running apps reload.
+// the session so running apps reload. On non-Plasma desktops that tool is not
+// installed (it ships with plasma-workspace), so scripts/kde-apply-colorscheme.sh
+// applies the scheme with kwriteconfig6 instead. Either way KDE apps only see
+// the colours when plasma-integration provides the KDE platform theme.
 //
 // KDE needs far more colour roles than the bar's ~10 tokens, so the shade() and
 // group() helpers derive window/view/button/selection/tooltip backgrounds and
@@ -18,18 +21,23 @@ Singleton {
     id: root
 
     readonly property string schemeDir: String(Quickshell.env("HOME")) + "/.local/share/color-schemes"
+    readonly property string fallbackHelper: Quickshell.shellDir + "/scripts/kde-apply-colorscheme.sh"
 
     function apply() {
         const theme = Themes.find(Settings.theme)
         const name = "Pilo-" + theme.id
         const file = schemeDir + "/" + name + ".colors"
         // Write the scheme and apply it in one shell command so the tool never
-        // runs before the file exists. plasma-apply-colorscheme is part of
-        // Plasma; if it is missing the write is harmless and kdeglobals is left
-        // alone.
+        // runs before the file exists. Prefer Plasma's own tool; fall back to
+        // the kwriteconfig6 helper when it is missing (no plasma-workspace).
+        // If neither exists the write is harmless and kdeglobals is left alone.
         const script = "mkdir -p '" + schemeDir + "' && "
             + "cat > '" + file + "' <<'PILO_EOF'\n" + buildScheme(theme, name) + "PILO_EOF\n"
-            + "plasma-apply-colorscheme '" + name + "'"
+            + "if command -v plasma-apply-colorscheme >/dev/null 2>&1; then "
+            + "plasma-apply-colorscheme '" + name + "'; "
+            + "elif [ -x '" + fallbackHelper + "' ]; then "
+            + "'" + fallbackHelper + "' '" + name + "'; "
+            + "fi"
         applyProc.command = ["sh", "-c", script]
         applyProc.running = true
     }

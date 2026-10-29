@@ -50,16 +50,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `Settings.theme` and restored on login. Built-ins: **Vague** (default, the
   bar's original palette), **Gruvbox**, **Frost**, **Everforest**,
   **Rosé Pine**, **Catppuccin** (Mocha), **Dracula**, **Material**, **Nord**.
-- **Hyprland themes with the bar** — the Hyprland "Look and feel" block moved
-  out of `hyprland.lua` into a generated `~/.config/hypr/lookandfeel.lua`, which
-  the bar writes from a `HyprTheme.qml` singleton (structural values plus the
-  active theme's border/background colours) and `hyprland.lua` loads with
-  `require()`. Switching a theme recolours the compositor instantly via
-  `hyprctl eval` (Hyprland 0.56 rejects `hyprctl keyword` for these options);
-  the file covers the next login. The Theming category also exposes **inner/outer
-  gaps, border size, window rounding, and blur** as persisted settings, applied
-  live the same way. The file is gitignored like `monitors.lua`. pibble is still
-  future work.
 - **KDE apps (Dolphin) theme with the bar** — `KdeTheme.qml` generates a KDE
   colour scheme under `~/.local/share/color-schemes/Pilo-<theme>.colors` from the
   active theme and applies it with `plasma-apply-colorscheme`, which rewrites
@@ -137,6 +127,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Hyprland look and feel moved to HyprMod** — the inner/outer gap, border
+  size, window rounding, and blur controls are gone from **Theming**, along
+  with their `Settings.hypr*` keys and the `HyprTheme.qml` singleton. Pilo no
+  longer writes `~/.config/hypr/lookandfeel.lua` or live-applies compositor
+  colours, so it cannot fight HyprMod's `hyprland-gui.lua`. The **Look and
+  feel** section now has an **Open HyprMod** button (detected on `PATH` or at
+  `~/.local/bin/hyprmod`). Pilo's theme still drives the bar, KDE apps, and the
+  foot terminal. An existing `lookandfeel.lua` is left untouched as a static
+  base config.
 - The **Calendar** settings category is renamed **Clock / Calendar** (same
   internal key).
 - Chrome modes are now **Flush**, **Centered**, and **Islands**; the old Pill
@@ -163,6 +162,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Dolphin and other KDE apps now follow the bar's theme without Plasma.
+  `KdeTheme` falls back to `scripts/kde-apply-colorscheme.sh` when
+  `plasma-apply-colorscheme` is absent (it ships with `plasma-workspace`),
+  writing the generated scheme into `kdeglobals` with `kwriteconfig6`. KDE apps
+  still need `plasma-integration` for the KDE platform theme.
 - Display numbers no longer follow the left-to-right arrangement. `Display 1`,
   `Display 2`, etc. are now tied to the output name via a stable sort, so
   dragging a monitor never renumbers the others and the number shown by
